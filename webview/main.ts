@@ -3,6 +3,8 @@ import { RoomView } from './scene/room/RoomView';
 import type { Turn } from './scene/room/Transcript';
 import type { ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
 
+let sessionTotalUSD = 0;
+
 declare const acquireVsCodeApi: () => {
   postMessage: (msg: unknown) => void;
   setState: (state: unknown) => void;
@@ -91,6 +93,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       const st = stateFor(msg.room.id);
       rooms.set(msg.room.id, msg.room);
       roomView.open(msg.room, st.turns, st.busy);
+      roomView.setSessionTotal(sessionTotalUSD);
       buildingFrame.classList.add('frame-hidden');
       return;
     }
@@ -129,6 +132,36 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       if (inflight) inflight.done = true;
       if (roomView.currentRoomId() === msg.roomId) {
         roomView.completeAgentTurn(msg.agentId);
+      }
+      return;
+    }
+
+    case 'cost_update': {
+      sessionTotalUSD = msg.sessionTotalUSD;
+      const st = stateFor(msg.roomId);
+      // Attach cost to the most recent agent turn of this agent in the
+      // buffered state so re-entries restore it.
+      for (let i = st.turns.length - 1; i >= 0; i--) {
+        const t = st.turns[i];
+        if (t && t.kind === 'agent' && t.agentId === msg.agentId) {
+          t.cost = {
+            provider: msg.provider,
+            model: msg.model,
+            inputTokens: msg.inputTokens,
+            outputTokens: msg.outputTokens,
+            thisStreamUSD: msg.thisStreamUSD,
+          };
+          break;
+        }
+      }
+      if (roomView.currentRoomId() === msg.roomId) {
+        roomView.applyCost(msg.agentId, {
+          provider: msg.provider,
+          model: msg.model,
+          inputTokens: msg.inputTokens,
+          outputTokens: msg.outputTokens,
+          thisStreamUSD: msg.thisStreamUSD,
+        }, sessionTotalUSD);
       }
       return;
     }

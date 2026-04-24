@@ -7,11 +7,20 @@ export interface TurnUser {
   readonly at: number;
 }
 
+export interface TurnAgentCost {
+  readonly provider: string;
+  readonly model: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly thisStreamUSD: number;
+}
+
 export interface TurnAgent {
   readonly kind: 'agent';
   readonly agentId: string;
   text: string;             // mutated as chunks stream in
   done: boolean;
+  cost?: TurnAgentCost;     // populated on cost_update
   readonly at: number;
 }
 
@@ -93,6 +102,20 @@ export class Transcript {
     this.scrollIfPinned();
   }
 
+  applyCost(agentId: string, cost: TurnAgentCost): void {
+    // Attach cost to the most recent agent turn for this agent (the one that
+    // just finished streaming).
+    for (let i = this.turns.length - 1; i >= 0; i--) {
+      const t = this.turns[i];
+      if (t && t.kind === 'agent' && t.agentId === agentId) {
+        t.cost = cost;
+        const el = this.turnEls.get(t);
+        if (el) renderCostFooter(el, cost);
+        return;
+      }
+    }
+  }
+
   get turnsSnapshot(): Turn[] {
     return this.turns.map((t) => ({ ...t }));
   }
@@ -153,6 +176,7 @@ export class Transcript {
       const body = li.querySelector('.turn-body') as HTMLElement;
       body.textContent = turn.text;
       if (!turn.done) body.appendChild(makeCaret());
+      if (turn.cost) renderCostFooter(li, turn.cost);
     }
     return li;
   }
@@ -175,4 +199,26 @@ function makeCaret(): HTMLSpanElement {
   const c = document.createElement('span');
   c.className = 'caret';
   return c;
+}
+
+function renderCostFooter(li: HTMLLIElement, cost: TurnAgentCost): void {
+  let footer = li.querySelector('.turn-cost') as HTMLElement | null;
+  if (!footer) {
+    footer = document.createElement('div');
+    footer.className = 'turn-cost';
+    li.appendChild(footer);
+  }
+  footer.textContent = [
+    cost.provider,
+    cost.model,
+    `${cost.inputTokens}→${cost.outputTokens} tok`,
+    formatCostUSD(cost.thisStreamUSD),
+  ].join(' · ');
+}
+
+function formatCostUSD(usd: number): string {
+  if (usd === 0) return 'free';
+  if (usd < 0.01) return '< $0.01';
+  if (usd < 1) return `$${usd.toFixed(3).slice(0, 5)}`;
+  return `$${usd.toFixed(2)}`;
 }

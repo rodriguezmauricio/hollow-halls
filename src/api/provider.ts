@@ -19,6 +19,10 @@ export interface StreamResult {
   readonly inputTokens: number;
   readonly outputTokens: number;
   readonly model: string;
+  /** Cost reported by the provider if it returns one (Claude Code CLI does
+   *  via its terminal `result` event's total_cost_usd). Undefined when the
+   *  caller should compute cost from tokens × rate. */
+  readonly providerReportedCostUSD?: number;
 }
 
 export interface LlmProvider {

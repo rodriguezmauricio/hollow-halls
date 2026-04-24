@@ -407,6 +407,16 @@ body {
 }
 .turn-user .turn-body { color: var(--bone-dim); font-style: italic; }
 .turn-user .turn-name { color: var(--bone-ghost); }
+
+.turn-cost {
+  margin-top: 6px;
+  padding-left: 17px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--bone-ghost);
+  opacity: 0.75;
+}
 .turn-user .turn-head::before {
   content: ''; width: 7px; height: 7px; background: transparent;
   border: 1px solid var(--bone-ghost); border-radius: 50%;

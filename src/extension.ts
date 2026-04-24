@@ -2,16 +2,41 @@ import * as vscode from 'vscode';
 import { AgentManager } from '@/core/AgentManager';
 import { providerForAgent } from '@/core/ProviderFactory';
 import { loadSettings, openSettingsInEditor } from '@/core/Settings';
+import { CostTracker, costForStream, formatCost } from '@/core/CostTracker';
 import { designRoom } from '@/rooms/design';
+import { uiuxRoom } from '@/rooms/uiux';
+import { codeRoom } from '@/rooms/code';
+import { frontRoom } from '@/rooms/front';
+import { marketRoom } from '@/rooms/market';
+import { secRoom } from '@/rooms/sec';
 import type { Room } from '@/rooms/types';
 import type { ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
 
 let panel: vscode.WebviewPanel | undefined;
+let statusBar: vscode.StatusBarItem | undefined;
+const costTracker = new CostTracker();
 
-const ROOMS: readonly Room[] = [designRoom];
+const ROOMS: readonly Room[] = [
+  designRoom,
+  uiuxRoom,
+  codeRoom,
+  frontRoom,
+  marketRoom,
+  secRoom,
+];
 const ROOM_BY_ID: Record<string, Room> = Object.fromEntries(ROOMS.map((r) => [r.id, r]));
 
 export function activate(context: vscode.ExtensionContext): void {
+  statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBar.text = 'Hollow Halls · $0.00';
+  statusBar.tooltip = 'Session spend across all Hollow Halls meetings';
+  statusBar.command = 'hollowHalls.open';
+  statusBar.show();
+  costTracker.onChange((total) => {
+    if (statusBar) statusBar.text = `Hollow Halls · ${formatCost(total)}`;
+  });
+  context.subscriptions.push(statusBar);
+
   const openCmd = vscode.commands.registerCommand('hollowHalls.open', () => {
     if (panel) {
       panel.reveal(vscode.ViewColumn.Active);
@@ -51,6 +76,8 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   panel?.dispose();
   panel = undefined;
+  statusBar?.dispose();
+  statusBar = undefined;
 }
 
 function wireMessages(p: vscode.WebviewPanel, context: vscode.ExtensionContext): void {
@@ -124,6 +151,7 @@ async function handleSendPrompt(
       }
 
       const manager = new AgentManager(provider);
+      const providerId = provider.id;
       await manager.run(
         { room, agent, userPrompt: msg.prompt, meetingId },
         {
@@ -131,8 +159,36 @@ async function handleSendPrompt(
             send(p, { type: 'agent_thinking', roomId, meetingId, agentId: agent.id }),
           onChunk: (chunk) =>
             send(p, { type: 'agent_text_chunk', roomId, meetingId, agentId: agent.id, chunk }),
-          onComplete: () =>
-            send(p, { type: 'agent_message_complete', roomId, meetingId, agentId: agent.id }),
+          onComplete: (result) => {
+            const streamCost = costForStream({
+              provider: providerId,
+              model: result.model,
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              providerReportedCostUSD: result.providerReportedCostUSD,
+            });
+            costTracker.record({
+              roomId,
+              agentId: agent.id,
+              provider: providerId,
+              model: result.model,
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              costUSD: streamCost,
+            });
+            send(p, {
+              type: 'cost_update',
+              roomId,
+              agentId: agent.id,
+              provider: providerId,
+              model: result.model,
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              sessionTotalUSD: costTracker.sessionTotal,
+              thisStreamUSD: streamCost,
+            });
+            send(p, { type: 'agent_message_complete', roomId, meetingId, agentId: agent.id });
+          },
           onError: (err) =>
             send(p, { type: 'error', message: `${agent.name}: ${err.message}` }),
         },

@@ -83,6 +83,19 @@ export type ExtensionMsg =
       readonly busy: boolean;
     }
   | {
+      readonly type: 'cost_update';
+      readonly roomId: string;
+      readonly agentId: string;
+      readonly provider: 'anthropic' | 'ollama' | 'claude-code';
+      readonly model: string;
+      readonly inputTokens: number;
+      readonly outputTokens: number;
+      /** Session total after this entry is recorded (USD). */
+      readonly sessionTotalUSD: number;
+      /** Cost of this specific stream (USD). */
+      readonly thisStreamUSD: number;
+    }
+  | {
       readonly type: 'error';
       readonly message: string;
     };

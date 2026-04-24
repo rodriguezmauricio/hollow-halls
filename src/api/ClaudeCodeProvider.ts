@@ -38,6 +38,7 @@ export class ClaudeCodeProvider implements LlmProvider {
     let inputTokens = 0;
     let outputTokens = 0;
     let resolvedModel = this.opts.model;
+    let reportedCost: number | undefined;
     let authFailed = false;
     let stderr = '';
 
@@ -82,6 +83,7 @@ export class ClaudeCodeProvider implements LlmProvider {
             inputTokens = r.inputTokens;
             outputTokens = r.outputTokens;
             if (r.model) resolvedModel = r.model;
+            if (typeof r.costUSD === 'number') reportedCost = r.costUSD;
           },
           onAuthFailed: () => {
             authFailed = true;
@@ -118,7 +120,13 @@ export class ClaudeCodeProvider implements LlmProvider {
       await rm(systemFile, { force: true }).catch(() => {});
     }
 
-    return { fullText: full, inputTokens, outputTokens, model: resolvedModel };
+    return {
+      fullText: full,
+      inputTokens,
+      outputTokens,
+      model: resolvedModel,
+      providerReportedCostUSD: reportedCost,
+    };
   }
 }
 
@@ -137,7 +145,7 @@ async function writeTempFile(content: string): Promise<string> {
 
 interface StreamCallbacks {
   onTextDelta: (chunk: string) => void;
-  onResult: (r: { inputTokens: number; outputTokens: number; model?: string }) => void;
+  onResult: (r: { inputTokens: number; outputTokens: number; model?: string; costUSD?: number }) => void;
   onAuthFailed: () => void;
 }
 
@@ -182,6 +190,7 @@ function handleLine(line: string, cb: StreamCallbacks): void {
       inputTokens: usage.input_tokens ?? 0,
       outputTokens: usage.output_tokens ?? 0,
       model: msg.model,
+      costUSD: typeof msg.total_cost_usd === 'number' ? msg.total_cost_usd : undefined,
     });
     return;
   }

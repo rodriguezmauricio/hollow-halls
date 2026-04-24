@@ -1,6 +1,6 @@
 import type { RoomPublicInfo } from '@/messaging/protocol';
 import { buildRoomScene } from './scenes';
-import { Transcript, type Turn } from './Transcript';
+import { Transcript, type Turn, type TurnAgentCost } from './Transcript';
 import { PromptBar } from './PromptBar';
 
 export interface RoomViewCallbacks {
@@ -109,6 +109,19 @@ export class RoomView {
     this.transcript.completeAgentTurn(agentId);
   }
 
+  applyCost(agentId: string, cost: TurnAgentCost, sessionTotalUSD: number): void {
+    this.transcript.applyCost(agentId, cost);
+    const activity = this.el.querySelector('.room-activity') as HTMLElement | null;
+    if (activity && !this.busy) activity.textContent = `session · ${formatUSD(sessionTotalUSD)}`;
+  }
+
+  setSessionTotal(sessionTotalUSD: number): void {
+    const activity = this.el.querySelector('.room-activity') as HTMLElement | null;
+    if (activity && !this.busy) activity.textContent = sessionTotalUSD > 0
+      ? `session · ${formatUSD(sessionTotalUSD)}`
+      : '';
+  }
+
   snapshotTranscript(): Turn[] {
     return this.transcript.turnsSnapshot;
   }
@@ -143,4 +156,11 @@ export class RoomView {
     const pointer = svg?.querySelector<SVGPolygonElement>('.speaker-pointer');
     if (pointer) pointer.setAttribute('opacity', '0');
   }
+}
+
+function formatUSD(usd: number): string {
+  if (usd === 0) return 'free';
+  if (usd < 0.01) return '< $0.01';
+  if (usd < 1) return `$${usd.toFixed(3).slice(0, 5)}`;
+  return `$${usd.toFixed(2)}`;
 }

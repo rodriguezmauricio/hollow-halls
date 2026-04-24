@@ -1,4 +1,4 @@
-import type { LlmProvider } from '@/api/provider';
+import type { LlmProvider, StreamResult } from '@/api/provider';
 import type { Room, AgentDef } from '@/rooms/types';
 
 export interface RunRequest {
@@ -11,12 +11,7 @@ export interface RunRequest {
 export interface StreamEvents {
   readonly onThinking: () => void;
   readonly onChunk: (chunk: string) => void;
-  readonly onComplete: (result: {
-    fullText: string;
-    inputTokens: number;
-    outputTokens: number;
-    model: string;
-  }) => void;
+  readonly onComplete: (result: StreamResult) => void;
   readonly onError: (err: Error) => void;
 }
 

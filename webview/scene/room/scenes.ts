@@ -98,6 +98,11 @@ export function buildRoomScene(room: RoomPublicInfo): string {
 function roomProps(room: RoomPublicInfo): string {
   switch (room.id) {
     case 'design': return designProps();
+    case 'uiux':   return uiuxProps();
+    case 'code':   return codeProps();
+    case 'front':  return frontProps();
+    case 'market': return marketProps();
+    case 'sec':    return secProps();
     default:       return genericProps();
   }
 }
@@ -137,6 +142,227 @@ function genericProps(): string {
   return `
   <path d="M540 60 Q600 10 660 60 L660 200 L540 200 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="1"/>
   <line x1="600" y1="28" x2="600" y2="200" stroke="#f2ead7" stroke-opacity="0.2" stroke-width="0.8"/>
+  `;
+}
+
+function uiuxProps(): string {
+  // Back wall: a wide journey-map board with flow boxes and sticky notes.
+  return `
+  <rect x="180" y="40" width="840" height="180" fill="#0e0b1a" stroke="#5ec8c0" stroke-opacity="0.45" stroke-width="1"/>
+  <!-- flow nodes (boxes + connectors) -->
+  <rect x="210" y="80" width="80" height="40" fill="none" stroke="#5ec8c0" stroke-opacity="0.85" stroke-width="1.2"/>
+  <rect x="330" y="80" width="80" height="40" fill="none" stroke="#5ec8c0" stroke-opacity="0.85" stroke-width="1.2"/>
+  <rect x="450" y="80" width="80" height="40" fill="#5ec8c0" opacity="0.35"/>
+  <rect x="570" y="80" width="80" height="40" fill="none" stroke="#5ec8c0" stroke-opacity="0.85" stroke-width="1.2"/>
+  <rect x="690" y="80" width="80" height="40" fill="none" stroke="#5ec8c0" stroke-opacity="0.85" stroke-width="1.2"/>
+  <rect x="810" y="80" width="60" height="40" fill="none" stroke="#5ec8c0" stroke-opacity="0.85" stroke-width="1.2"/>
+  <!-- dashed connectors -->
+  <line x1="290" y1="100" x2="330" y2="100" stroke="#5ec8c0" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <line x1="410" y1="100" x2="450" y2="100" stroke="#5ec8c0" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <line x1="530" y1="100" x2="570" y2="100" stroke="#5ec8c0" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <line x1="650" y1="100" x2="690" y2="100" stroke="#5ec8c0" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <line x1="770" y1="100" x2="810" y2="100" stroke="#5ec8c0" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <!-- sticky notes -->
+  <rect x="230" y="150" width="44" height="44" fill="#e4c056" opacity="0.85" transform="rotate(-4 252 172)"/>
+  <rect x="430" y="140" width="44" height="44" fill="#e07a95" opacity="0.85" transform="rotate(3 452 162)"/>
+  <rect x="740" y="150" width="38" height="38" fill="#5ec8c0" opacity="0.85" transform="rotate(-6 759 169)"/>
+  `;
+}
+
+function codeProps(): string {
+  // Back wall: twin monitors showing code; a stack of printed diffs on the right.
+  return `
+  <!-- left monitor -->
+  <rect x="280" y="70" width="200" height="130" fill="#0e0b1a" stroke="#9d7cd8" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="280" y="70" width="200" height="14" fill="#1c1830"/>
+  <circle cx="290" cy="77" r="2" fill="#d66c6c"/>
+  <circle cx="298" cy="77" r="2" fill="#e4c056"/>
+  <circle cx="306" cy="77" r="2" fill="#5ec8c0"/>
+  <!-- code lines -->
+  <rect x="294" y="96"  width="120" height="3" fill="#9d7cd8" opacity="0.9"/>
+  <rect x="294" y="106" width="84"  height="3" fill="#5ec8c0" opacity="0.8"/>
+  <rect x="304" y="116" width="112" height="3" fill="#e4c056" opacity="0.7"/>
+  <rect x="294" y="126" width="148" height="3" fill="#9d7cd8" opacity="0.6"/>
+  <rect x="304" y="136" width="92"  height="3" fill="#9d7cd8" opacity="0.5"/>
+  <rect x="294" y="146" width="60"  height="3" fill="#d66c6c" opacity="0.8"/>
+  <rect x="304" y="156" width="120" height="3" fill="#9d7cd8" opacity="0.5"/>
+  <rect x="294" y="166" width="80"  height="3" fill="#5ec8c0" opacity="0.6"/>
+
+  <!-- right monitor -->
+  <rect x="520" y="70" width="200" height="130" fill="#0e0b1a" stroke="#9d7cd8" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="520" y="70" width="200" height="14" fill="#1c1830"/>
+  <rect x="534" y="96"  width="110" height="3" fill="#d66c6c" opacity="0.9"/>
+  <rect x="534" y="106" width="70"  height="3" fill="#9d7cd8" opacity="0.6"/>
+  <rect x="544" y="116" width="140" height="3" fill="#5ec8c0" opacity="0.8"/>
+  <rect x="534" y="126" width="90"  height="3" fill="#9d7cd8" opacity="0.5"/>
+  <rect x="534" y="136" width="120" height="3" fill="#9d7cd8" opacity="0.6"/>
+  <rect x="544" y="146" width="80"  height="3" fill="#e4c056" opacity="0.8"/>
+
+  <!-- stack of printed diffs on the right -->
+  <rect x="820" y="160" width="140" height="10" fill="#3a2a1a"/>
+  <rect x="820" y="150" width="140" height="10" fill="#5a3f28"/>
+  <rect x="820" y="140" width="140" height="10" fill="#3a2a1a"/>
+  <rect x="820" y="130" width="140" height="10" fill="#5a3f28"/>
+  <rect x="820" y="120" width="140" height="10" fill="#f2ead7" opacity="0.9"/>
+  <rect x="830" y="124" width="80" height="2" fill="#9d7cd8" opacity="0.6"/>
+  <rect x="830" y="128" width="100" height="2" fill="#5ec8c0" opacity="0.5"/>
+  `;
+}
+
+function frontProps(): string {
+  // Back wall: browser mock, phone, tablet — the looking glass.
+  return `
+  <!-- browser mock (main monitor) -->
+  <rect x="220" y="40" width="360" height="200" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="220" y="40" width="360" height="20" fill="#1c1830"/>
+  <circle cx="232" cy="50" r="2.5" fill="#d66c6c"/>
+  <circle cx="242" cy="50" r="2.5" fill="#e4c056"/>
+  <circle cx="252" cy="50" r="2.5" fill="#5ec8c0"/>
+  <rect x="264" y="46" width="160" height="8" rx="4" fill="#2c2438"/>
+  <!-- hero -->
+  <rect x="240" y="80" width="210" height="10" fill="#e07a95" opacity="0.75"/>
+  <rect x="240" y="96" width="320" height="4" fill="#f2ead7" opacity="0.3"/>
+  <rect x="240" y="106" width="280" height="4" fill="#f2ead7" opacity="0.25"/>
+  <!-- card grid -->
+  <rect x="240" y="128" width="96" height="84" fill="#e07a95" opacity="0.3"/>
+  <rect x="348" y="128" width="96" height="84" fill="#e07a95" opacity="0.3"/>
+  <rect x="456" y="128" width="96" height="84" fill="#e07a95" opacity="0.3"/>
+
+  <!-- phone -->
+  <rect x="620" y="70" width="84" height="160" rx="8" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="628" y="82" width="68" height="130" fill="#e07a95" opacity="0.25"/>
+  <rect x="636" y="94" width="20" height="6" fill="#f2ead7" opacity="0.6"/>
+  <rect x="636" y="106" width="52" height="3" fill="#f2ead7" opacity="0.35"/>
+  <rect x="636" y="114" width="42" height="3" fill="#f2ead7" opacity="0.35"/>
+  <rect x="636" y="130" width="52" height="30" fill="#e07a95" opacity="0.35"/>
+
+  <!-- tablet -->
+  <rect x="740" y="110" width="170" height="120" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.6" stroke-width="1"/>
+  <rect x="748" y="118" width="154" height="14" fill="#e07a95" opacity="0.55"/>
+  <rect x="748" y="140" width="120" height="4" fill="#f2ead7" opacity="0.4"/>
+  <rect x="748" y="150" width="140" height="4" fill="#f2ead7" opacity="0.35"/>
+  <rect x="748" y="168" width="64" height="38" fill="#e07a95" opacity="0.3"/>
+  <rect x="820" y="168" width="64" height="38" fill="#e07a95" opacity="0.3"/>
+  `;
+}
+
+function marketProps(): string {
+  // Back wall: pin board with campaign drafts on the left, analytics line
+  // chart on the right.
+  return `
+  <!-- pin board -->
+  <rect x="180" y="50" width="320" height="200" fill="#1c1830" stroke="#e4c056" stroke-opacity="0.5" stroke-width="1"/>
+  <rect x="204" y="74" width="80" height="80" fill="#e07a95" opacity="0.8"/>
+  <rect x="298" y="66" width="80" height="80" fill="#5ec8c0" opacity="0.8"/>
+  <rect x="394" y="74" width="86" height="86" fill="#e4c056" opacity="0.85"/>
+  <rect x="204" y="170" width="100" height="10" fill="#9d7cd8" opacity="0.7"/>
+  <rect x="320" y="166" width="140" height="10" fill="#f2ead7" opacity="0.65"/>
+  <rect x="204" y="196" width="80" height="10" fill="#e07a95" opacity="0.7"/>
+  <rect x="316" y="192" width="160" height="10" fill="#e4c056" opacity="0.7"/>
+  <!-- push pins -->
+  <circle cx="244" cy="74" r="3" fill="#d66c6c"/>
+  <circle cx="338" cy="66" r="3" fill="#e4c056"/>
+  <circle cx="437" cy="74" r="3" fill="#9d7cd8"/>
+
+  <!-- analytics screen on the right -->
+  <rect x="560" y="50" width="380" height="200" fill="#0e0b1a" stroke="#e4c056" stroke-opacity="0.6" stroke-width="1"/>
+  <polyline points="580,220 620,180 660,196 700,150 740,170 780,120 820,140 860,100 900,124"
+            fill="none" stroke="#e4c056" stroke-width="2"/>
+  <!-- small bars under the line -->
+  <rect x="600" y="180" width="8" height="40" fill="#e4c056" opacity="0.6"/>
+  <rect x="640" y="196" width="8" height="24" fill="#e4c056" opacity="0.6"/>
+  <rect x="680" y="170" width="8" height="50" fill="#e4c056" opacity="0.6"/>
+  <rect x="720" y="150" width="8" height="70" fill="#e4c056" opacity="0.6"/>
+  <rect x="760" y="140" width="8" height="80" fill="#e4c056" opacity="0.6"/>
+  <rect x="800" y="124" width="8" height="96" fill="#e4c056" opacity="0.7"/>
+  <rect x="840" y="108" width="8" height="112" fill="#e4c056" opacity="0.7"/>
+  <!-- KPI tiles -->
+  <rect x="584" y="66" width="54" height="30" fill="#1c1830" stroke="#e4c056" stroke-opacity="0.4"/>
+  <rect x="588" y="72" width="30" height="6" fill="#f2ead7" opacity="0.6"/>
+  <rect x="588" y="82" width="40" height="3" fill="#e4c056" opacity="0.5"/>
+  `;
+}
+
+function secProps(): string {
+  // Back wall: a bank of four monitors — two central "active" ones with
+  // terminal text, two side monitors with dim grid patterns.
+  return `
+  <rect x="0" y="0" width="1200" height="260" fill="#0c0814"/>
+
+  <!-- left side monitor -->
+  <rect x="150" y="70" width="170" height="130" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.4" stroke-width="1"/>
+  <g opacity="0.55">
+    <rect x="168" y="86"  width="6" height="6" fill="#d66c6c"/>
+    <rect x="184" y="86"  width="6" height="6" fill="#d66c6c"/>
+    <rect x="200" y="102" width="6" height="6" fill="#d66c6c"/>
+    <rect x="216" y="86"  width="6" height="6" fill="#d66c6c"/>
+    <rect x="168" y="118" width="6" height="6" fill="#d66c6c"/>
+    <rect x="232" y="134" width="6" height="6" fill="#d66c6c"/>
+    <rect x="248" y="102" width="6" height="6" fill="#d66c6c"/>
+    <rect x="168" y="150" width="6" height="6" fill="#d66c6c"/>
+    <rect x="200" y="166" width="6" height="6" fill="#d66c6c"/>
+    <rect x="232" y="182" width="6" height="6" fill="#d66c6c"/>
+  </g>
+
+  <!-- main terminal (center left) -->
+  <rect x="340" y="50" width="220" height="170" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.8" stroke-width="1.2"/>
+  <rect x="360" y="74"  width="100" height="4" fill="#d66c6c"/>
+  <rect x="360" y="84"  width="140" height="4" fill="#d66c6c" opacity="0.85"/>
+  <rect x="370" y="94"  width="120" height="4" fill="#d66c6c" opacity="0.65"/>
+  <rect x="360" y="104" width="170" height="4" fill="#e4c056" opacity="0.75"/>
+  <rect x="360" y="114" width="80"  height="4" fill="#d66c6c">
+    <animate attributeName="opacity" values="0.95;0.3;0.95" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="360" y="124" width="140" height="4" fill="#d66c6c" opacity="0.55"/>
+  <rect x="370" y="134" width="100" height="4" fill="#d66c6c" opacity="0.45"/>
+  <rect x="360" y="144" width="180" height="4" fill="#9d7cd8" opacity="0.55"/>
+  <rect x="360" y="154" width="90"  height="4" fill="#d66c6c" opacity="0.5"/>
+  <rect x="360" y="164" width="160" height="4" fill="#d66c6c" opacity="0.4"/>
+  <rect x="360" y="174" width="60"  height="4" fill="#d66c6c" opacity="0.8">
+    <animate attributeName="opacity" values="0.95;0.3;0.95" dur="0.8s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- main terminal (center right) -->
+  <rect x="580" y="50" width="220" height="170" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.8" stroke-width="1.2"/>
+  <rect x="600" y="74"  width="140" height="4" fill="#d66c6c" opacity="0.85"/>
+  <rect x="600" y="84"  width="180" height="4" fill="#5ec8c0" opacity="0.7"/>
+  <rect x="610" y="94"  width="120" height="4" fill="#d66c6c" opacity="0.65"/>
+  <rect x="600" y="104" width="150" height="4" fill="#d66c6c" opacity="0.5"/>
+  <rect x="600" y="114" width="100" height="4" fill="#5ec8c0" opacity="0.6"/>
+  <rect x="600" y="124" width="170" height="4" fill="#d66c6c" opacity="0.45"/>
+  <rect x="610" y="134" width="120" height="4" fill="#d66c6c" opacity="0.55"/>
+  <rect x="600" y="144" width="60"  height="4" fill="#d66c6c" opacity="0.85"/>
+  <rect x="600" y="154" width="140" height="4" fill="#d66c6c" opacity="0.5"/>
+  <rect x="600" y="164" width="100" height="4" fill="#9d7cd8" opacity="0.6"/>
+  <rect x="600" y="174" width="90"  height="4" fill="#d66c6c" opacity="0.5"/>
+
+  <!-- right side monitor -->
+  <rect x="820" y="70" width="170" height="130" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.4" stroke-width="1"/>
+  <g opacity="0.55">
+    <rect x="840" y="90"  width="6" height="6" fill="#d66c6c"/>
+    <rect x="864" y="106" width="6" height="6" fill="#d66c6c"/>
+    <rect x="888" y="90"  width="6" height="6" fill="#d66c6c"/>
+    <rect x="912" y="122" width="6" height="6" fill="#d66c6c"/>
+    <rect x="856" y="138" width="6" height="6" fill="#d66c6c"/>
+    <rect x="880" y="154" width="6" height="6" fill="#d66c6c"/>
+    <rect x="920" y="170" width="6" height="6" fill="#d66c6c"/>
+    <rect x="848" y="170" width="6" height="6" fill="#d66c6c"/>
+  </g>
+
+  <!-- server rack on the far right -->
+  <rect x="1020" y="50" width="40" height="190" fill="#1c1830" stroke="#d66c6c" stroke-opacity="0.5" stroke-width="1"/>
+  <rect x="1026" y="60" width="28" height="6" fill="#d66c6c" opacity="0.8"/>
+  <rect x="1026" y="72" width="28" height="6" fill="#d66c6c" opacity="0.55"/>
+  <rect x="1026" y="84" width="28" height="6" fill="#5ec8c0" opacity="0.6">
+    <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="1026" y="96" width="28" height="6" fill="#d66c6c" opacity="0.7"/>
+  <rect x="1026" y="108" width="28" height="6" fill="#d66c6c" opacity="0.55"/>
+  <rect x="1026" y="120" width="28" height="6" fill="#d66c6c" opacity="0.7"/>
+  <rect x="1026" y="132" width="28" height="6" fill="#d66c6c" opacity="0.45"/>
+  <rect x="1026" y="144" width="28" height="6" fill="#d66c6c" opacity="0.55"/>
+  <rect x="1026" y="156" width="28" height="6" fill="#e4c056" opacity="0.6"/>
+  <rect x="1026" y="168" width="28" height="6" fill="#d66c6c" opacity="0.55"/>
   `;
 }
 
