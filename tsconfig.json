@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "sourceMap": true,
+    "outDir": "out",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/core/*": ["src/core/*"],
+      "@/api/*": ["src/api/*"],
+      "@/messaging/*": ["src/messaging/*"],
+      "@/rooms/*": ["src/rooms/*"],
+      "@/webview/*": ["webview/*"]
+    }
+  },
+  "include": ["src/**/*", "webview/**/*"],
+  "exclude": ["node_modules", "out", "test"]
+}

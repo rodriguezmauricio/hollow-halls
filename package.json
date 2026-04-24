@@ -1,0 +1,51 @@
+{
+  "name": "hollow-halls",
+  "displayName": "The Hollow Halls",
+  "description": "A spatial UI for orchestrating Claude agents inside VS Code.",
+  "version": "0.0.1",
+  "publisher": "hollow-halls",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "hollowHalls.open",
+        "title": "Hollow Halls: Open",
+        "category": "Hollow Halls"
+      },
+      {
+        "command": "hollowHalls.editSettings",
+        "title": "Hollow Halls: Edit Settings",
+        "category": "Hollow Halls"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@fontsource/cinzel": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "ollama": "^0.6.3"
+  }
+}
