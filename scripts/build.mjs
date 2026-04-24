@@ -20,7 +20,10 @@ const extensionBuild = {
   outfile: 'out/extension.js',
   platform: 'node',
   format: 'cjs',
-  external: ['vscode'],
+  // Runtime deps stay external — vsce bundles node_modules into the .vsix,
+  // so we `require()` them at runtime instead of ballooning our JS bundle.
+  // Keeps us well under the 500 KB extension budget from CLAUDE.md.
+  external: ['vscode', '@anthropic-ai/sdk', 'ollama'],
 };
 
 const webviewBuild = {
