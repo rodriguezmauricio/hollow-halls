@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>the hollow halls // a continuous office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #070510;
+    --ink-2: #0e0b1a;
+    --ink-3: #161124;
+    --stone: #4a3f5a;
+    --stone-hi: #6a5d7d;
+    --stone-lo: #2c2438;
+    --bone: #f2ead7;
+    --bone-dim: #b9b2a3;
+    --bone-ghost: #6e6a60;
+    --orchid: #9de0f0;
+    --design: #e8a04a;
+    --uiux: #5ec8c0;
+    --code: #9d7cd8;
+    --front: #e07a95;
+    --market: #e4c056;
+    --sec: #d66c6c;
+    --common: #f2ead7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--ink);
+    color: var(--bone);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(157,224,240,0.06), transparent 55%),
+      radial-gradient(ellipse at 20% 80%, rgba(157,124,216,0.04), transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(224,122,149,0.035), transparent 50%),
+      var(--ink);
+  }
+
+  /* dust */
+  .dust { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+  .dust span {
+    position: absolute; width: 2px; height: 2px;
+    background: var(--bone); border-radius: 50%; opacity: 0;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10%, 90% { opacity: 0.5; }
+    100% { transform: translateY(-10vh) translateX(40px); opacity: 0; }
+  }
+
+  .frame { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 28px 36px 48px; }
+
+  /* header */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(242,234,215,0.08);
+    margin-bottom: 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .mark {
+    width: 22px; height: 22px; background: var(--bone);
+    clip-path: polygon(50% 0%, 100% 28%, 100% 72%, 50% 100%, 0% 72%, 0% 28%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.9; filter: drop-shadow(0 0 6px rgba(242,234,215,0.3)); }
+    50%      { opacity: 1;   filter: drop-shadow(0 0 14px rgba(242,234,215,0.6)); }
+  }
+  .brand h1 { font-family: 'Cinzel', serif; font-weight: 600; font-size: 20px; letter-spacing: 6px; color: var(--bone); }
+  .brand .sub { font-size: 10px; letter-spacing: 3px; color: var(--bone-ghost); text-transform: uppercase; margin-top: 2px; }
+  .meta {
+    display: flex; gap: 22px; align-items: center;
+    font-size: 10px; letter-spacing: 2px; color: var(--bone-ghost); text-transform: uppercase;
+  }
+  .meta .stat b { color: var(--bone); font-weight: 500; }
+  .meta .theme {
+    display: inline-flex; gap: 6px; padding: 6px 10px;
+    border: 1px solid rgba(242,234,215,0.1); cursor: pointer;
+  }
+  .meta .theme:hover { border-color: rgba(242,234,215,0.3); }
+
+  /* tagline above building */
+  .tagline {
+    text-align: center;
+    margin-bottom: 18px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--bone-ghost);
+    text-transform: uppercase;
+  }
+  .tagline .pin { color: var(--bone-dim); margin: 0 10px; }
+
+  /* building shell */
+  .building-frame {
+    position: relative;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(157,224,240,0.07), transparent 60%),
+      var(--ink-2);
+    border: 1px solid rgba(242,234,215,0.1);
+    padding: 26px;
+    margin-bottom: 28px;
+  }
+  .building-frame::before, .building-frame::after {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    border: 1px solid rgba(242,234,215,0.4);
+  }
+  .building-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .building-frame::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .building {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* room interaction */
+  .room { cursor: pointer; }
+  .room .room-tint { fill: var(--accent, transparent); opacity: 0; transition: opacity 0.3s; }
+  .room .room-stroke { stroke: var(--accent, transparent); stroke-width: 0; transition: stroke-width 0.3s; }
+  .room .enter-hint { opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .room:hover .room-tint { opacity: 0.18; }
+  .room:hover .room-stroke { stroke-width: 2; }
+  .room:hover .enter-hint { opacity: 1; }
+  .room:hover .room-figure { filter: brightness(1.15); }
+
+  /* per-room accent vars */
+  .room.design   { --accent: #e8a04a; }
+  .room.uiux     { --accent: #5ec8c0; }
+  .room.code     { --accent: #9d7cd8; }
+  .room.front    { --accent: #e07a95; }
+  .room.market   { --accent: #e4c056; }
+  .room.sec      { --accent: #d66c6c; }
+  .room.oracle   { --accent: #9de0f0; }
+  .room.common   { --accent: #f2ead7; }
+
+  /* breathing figures */
+  .breath { transform-origin: center bottom; animation: breath 4s ease-in-out infinite; }
+  .breath.b2 { animation-delay: 0.7s; }
+  .breath.b3 { animation-delay: 1.4s; }
+  @keyframes breath { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(0.985); } }
+
+  /* custom halls grid below */
+  .section-label {
+    display: flex; align-items: center; gap: 14px;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 4px;
+    color: var(--bone-ghost); text-transform: uppercase; margin: 0 0 16px;
+  }
+  .section-label::before, .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(242,234,215,0.12), transparent);
+  }
+
+  .custom {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px;
+  }
+  .custom-tile {
+    aspect-ratio: 5/2;
+    border: 1px dashed rgba(242,234,215,0.18);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+    color: var(--bone-ghost); cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .custom-tile:hover { border-color: rgba(242,234,215,0.5); color: var(--bone); }
+  .custom-tile .ic { font-size: 22px; font-weight: 200; font-family: 'Cinzel', serif; }
+  .custom-tile .tx { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; }
+
+  footer {
+    margin-top: 18px; display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; letter-spacing: 2px; color: var(--bone-ghost); text-transform: uppercase;
+    padding-top: 18px; border-top: 1px solid rgba(242,234,215,0.06);
+  }
+  footer .links { display: flex; gap: 22px; }
+  footer .links span { cursor: pointer; }
+  footer .links span:hover { color: var(--bone); }
+
+  /* modal */
+  .veil {
+    position: fixed; inset: 0; background: rgba(7,5,16,0.88);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: none; z-index: 20; align-items: center; justify-content: center; padding: 32px;
+  }
+  .veil.open { display: flex; animation: veilIn 0.3s ease; }
+  @keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .dialog {
+    width: 100%; max-width: 680px;
+    background: var(--ink-2);
+    border: 1px solid rgba(242,234,215,0.14);
+    position: relative; max-height: 90vh; overflow-y: auto;
+    animation: dialogIn 0.35s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes dialogIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .dialog::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent, var(--bone)); box-shadow: 0 0 20px var(--accent, var(--bone));
+  }
+  .dialog-head { padding: 26px 30px 20px; border-bottom: 1px solid rgba(242,234,215,0.06); position: relative; }
+  .dialog-head h2 {
+    font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: 6px;
+    color: var(--accent, var(--bone)); font-weight: 600; text-transform: uppercase;
+  }
+  .dialog-head p { font-size: 11px; color: var(--bone-dim); letter-spacing: 1px; margin-top: 6px; line-height: 1.5; }
+  .close-x {
+    position: absolute; top: 20px; right: 20px;
+    width: 28px; height: 28px;
+    border: 1px solid rgba(242,234,215,0.15); background: transparent;
+    color: var(--bone-dim); cursor: pointer; font-size: 14px; line-height: 1;
+  }
+  .close-x:hover { color: var(--bone); border-color: var(--bone); }
+
+  .dialog-body { padding: 22px 30px; }
+
+  .all-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    color: var(--bone-dim); background: transparent;
+    border: 1px solid rgba(242,234,215,0.15); padding: 8px 14px;
+    cursor: pointer; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .all-btn:hover { color: var(--bone); border-color: var(--bone); }
+
+  .agents-list {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  .agent-card {
+    padding: 12px; border: 1px solid rgba(242,234,215,0.1); background: rgba(242,234,215,0.02);
+    cursor: pointer; display: flex; gap: 10px; align-items: center;
+    transition: border-color 0.2s, background 0.2s; user-select: none;
+  }
+  .agent-card:hover { border-color: rgba(242,234,215,0.3); }
+  .agent-card.picked { border-color: var(--accent, var(--bone)); background: rgba(242,234,215,0.05); }
+  .agent-card .av { width: 30px; height: 30px; flex-shrink: 0; }
+  .agent-card .info { flex: 1; min-width: 0; }
+  .agent-card .nm { font-size: 11px; letter-spacing: 1px; color: var(--bone); text-transform: uppercase; }
+  .agent-card .tag { font-size: 9px; color: var(--bone-ghost); letter-spacing: 1px; margin-top: 2px; }
+  .agent-card .dot { width: 6px; height: 6px; background: var(--bone-ghost); flex-shrink: 0; }
+  .agent-card.picked .dot { background: var(--accent, var(--bone)); box-shadow: 0 0 8px var(--accent, var(--bone)); }
+
+  .prompt-field {
+    width: 100%; min-height: 100px;
+    background: var(--ink); border: 1px solid rgba(242,234,215,0.1); color: var(--bone);
+    padding: 14px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.55;
+    resize: vertical; outline: none; transition: border-color 0.2s;
+  }
+  .prompt-field:focus { border-color: var(--accent, var(--bone)); }
+  .prompt-field::placeholder { color: var(--bone-ghost); font-style: italic; }
+
+  .handoff {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px;
+    font-size: 10px; letter-spacing: 1px; color: var(--bone-ghost); text-transform: uppercase;
+  }
+  .handoff select {
+    background: var(--ink); border: 1px solid rgba(242,234,215,0.1); color: var(--bone-dim);
+    font-family: inherit; font-size: 10px; padding: 6px 8px; letter-spacing: 1px;
+    outline: none; cursor: pointer; text-transform: uppercase;
+  }
+
+  .dialog-foot {
+    padding: 18px 30px; display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid rgba(242,234,215,0.06); background: rgba(7,5,16,0.5);
+  }
+  .turn-note { font-size: 10px; color: var(--bone-ghost); letter-spacing: 1px; }
+  .send {
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 4px;
+    background: var(--accent, var(--bone)); color: var(--ink); border: none;
+    padding: 12px 26px; cursor: pointer; text-transform: uppercase; font-weight: 600;
+    transition: filter 0.2s, transform 0.1s;
+  }
+  .send:hover { filter: brightness(1.1); }
+  .send:active { transform: translateY(1px); }
+
+  @media (max-width: 720px) {
+    .frame { padding: 16px 12px; }
+    .agents-list { grid-template-columns: 1fr 1fr; }
+    .custom { grid-template-columns: 1fr; }
+    .meta .stat { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dust" id="dust"></div>
+
+<div class="frame">
+
+  <header>
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <h1>THE HOLLOW HALLS</h1>
+        <div class="sub">a continuous office · v0.2</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="stat"><b>14</b> agents vigilant</div>
+      <div class="stat"><b>3</b> rites in progress</div>
+      <div class="theme">▢ theme: hollow</div>
+    </div>
+  </header>
+
+  <div class="tagline">enter through the oracle <span class="pin">·</span> rooms attend their craft <span class="pin">·</span> the great hall convenes them all</div>
+
+  <!-- ========== THE BUILDING ========== -->
+  <div class="building-frame">
+
+    <svg class="building" viewBox="0 0 800 940" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+
+        <!-- floor textures -->
+        <pattern id="planks" x="0" y="0" width="50" height="14" patternUnits="userSpaceOnUse">
+          <rect width="50" height="14" fill="#1a1426"/>
+          <line x1="0" y1="14" x2="50" y2="14" stroke="#0e0a18" stroke-width="0.5"/>
+          <line x1="25" y1="0" x2="25" y2="14" stroke="#221a30" stroke-width="0.4"/>
+        </pattern>
+        <pattern id="tiles" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <rect width="20" height="20" fill="#15101e"/>
+          <rect width="20" height="20" fill="none" stroke="#0a0814" stroke-width="0.5"/>
+        </pattern>
+        <pattern id="hall-floor" x="0" y="0" width="40" height="14" patternUnits="userSpaceOnUse">
+          <rect width="40" height="14" fill="#161122"/>
+          <line x1="0" y1="14" x2="40" y2="14" stroke="#0c0816" stroke-width="0.4"/>
+        </pattern>
+
+        <!-- soul-color glows for each room (radial gradient that goes from accent → transparent) -->
+        <radialGradient id="glow-design" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#e8a04a" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#e8a04a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-uiux" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#5ec8c0" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#5ec8c0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-code" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#9d7cd8" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#9d7cd8" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-front" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#e07a95" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#e07a95" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-market" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#e4c056" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#e4c056" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-sec" cx="50%" cy="50%" r="60%">
+          <stop offset="0%" stop-color="#d66c6c" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#d66c6c" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-oracle" cx="50%" cy="50%" r="65%">
+          <stop offset="0%" stop-color="#9de0f0" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#9de0f0" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glow-common" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#f2ead7" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#f2ead7" stop-opacity="0"/>
+        </radialGradient>
+
+        <!-- Hollow Knight figure (medium, top-down) -->
+        <symbol id="hk" viewBox="0 0 16 22">
+          <ellipse cx="8" cy="20" rx="6" ry="1.2" fill="#000" opacity="0.45"/>
+          <!-- cloak/body -->
+          <path d="M8 2 C5 2 3.5 4 3.5 7.5 L3.5 16 C3.5 18 4.5 19 6 19 L10 19 C11.5 19 12.5 18 12.5 16 L12.5 7.5 C12.5 4 11 2 8 2 Z" fill="#f2ead7"/>
+          <!-- horns -->
+          <path d="M4.5 4 L2 -1 L6 3 Z" fill="#f2ead7"/>
+          <path d="M11.5 4 L14 -1 L10 3 Z" fill="#f2ead7"/>
+          <!-- eye voids -->
+          <ellipse cx="6" cy="7.5" rx="1.1" ry="1.6" fill="#070510"/>
+          <ellipse cx="10" cy="7.5" rx="1.1" ry="1.6" fill="#070510"/>
+        </symbol>
+
+        <!-- chair (top-down) -->
+        <symbol id="chair" viewBox="0 0 14 14">
+          <rect x="2" y="0" width="10" height="3" fill="#3a3045"/>
+          <rect x="2" y="3" width="10" height="9" fill="#5d4f6d"/>
+          <rect x="2" y="3" width="10" height="1" fill="#74638a" opacity="0.6"/>
+        </symbol>
+
+        <!-- desk (top-down rectangle) -->
+        <symbol id="desk" viewBox="0 0 40 16">
+          <rect x="0" y="2" width="40" height="14" fill="#3a2a1a"/>
+          <rect x="0" y="0" width="40" height="3" fill="#5a3f28"/>
+          <rect x="0" y="0" width="40" height="1" fill="#7a5540"/>
+        </symbol>
+
+        <!-- vignette overlay used on entire building -->
+        <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
+          <stop offset="60%" stop-color="#070510" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#070510" stop-opacity="0.6"/>
+        </radialGradient>
+      </defs>
+
+      <!-- BG (the dark "outside" of the building) -->
+      <rect width="800" height="940" fill="#070510"/>
+
+      <!-- ============= ORACLE'S CHAMBER (top, narrow) ============= -->
+      <!-- outer wall of oracle chamber -->
+      <g class="room oracle" data-room="oracle">
+        <!-- room walls (frame) -->
+        <rect x="280" y="20" width="240" height="130" fill="#3a3045"/>
+        <rect x="285" y="25" width="230" height="120" fill="#161122"/>
+        <!-- soul glow background -->
+        <ellipse cx="400" cy="85" rx="100" ry="50" fill="url(#glow-oracle)"/>
+
+        <!-- decorative tall window frames behind throne -->
+        <rect x="320" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
+        <line x1="331" y1="34" x2="331" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+        <rect x="389" y="30" width="22" height="44" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
+        <line x1="400" y1="30" x2="400" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+        <rect x="458" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
+        <line x1="469" y1="34" x2="469" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+
+        <!-- floor accent: glyph circle -->
+        <circle cx="400" cy="105" r="22" fill="none" stroke="#9de0f0" stroke-opacity="0.35" stroke-width="0.5"/>
+        <circle cx="400" cy="105" r="14" fill="none" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
+        <line x1="380" y1="105" x2="420" y2="105" stroke="#9de0f0" stroke-opacity="0.25" stroke-width="0.4"/>
+        <line x1="400" y1="85"  x2="400" y2="125" stroke="#9de0f0" stroke-opacity="0.25" stroke-width="0.4"/>
+
+        <!-- the oracle itself: enthroned figure -->
+        <g class="room-figure">
+          <g transform="translate(392 88)" class="breath">
+            <use href="#hk" width="16" height="22"/>
+          </g>
+          <!-- soul orb hovering -->
+          <circle cx="400" cy="80" r="2.2" fill="#9de0f0" opacity="0.95">
+            <animate attributeName="cy" values="80;74;80" dur="3.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.95;0.5;0.95" dur="3.5s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+
+        <!-- room label -->
+        <text x="295" y="142" font-family="Cinzel, serif" font-size="10" letter-spacing="3" fill="#f2ead7" opacity="0.85">THE ORACLE</text>
+        <text x="446" y="142" font-family="IBM Plex Mono, monospace" font-size="7" letter-spacing="1" fill="#9de0f0" opacity="0.75">— the entrance</text>
+
+        <!-- hover tint + stroke -->
+        <rect class="room-tint" x="285" y="25" width="230" height="120"/>
+        <rect class="room-stroke" x="285" y="25" width="230" height="120" fill="none"/>
+        <text class="enter-hint" x="500" y="42" font-family="IBM Plex Mono, monospace" font-size="8" fill="#9de0f0" letter-spacing="2">CONSULT ›</text>
+      </g>
+
+      <!-- corridor connecting oracle to building -->
+      <rect x="392" y="150" width="16" height="22" fill="#161122"/>
+      <rect x="386" y="150" width="6" height="22" fill="#3a3045"/>
+      <rect x="408" y="150" width="6" height="22" fill="#3a3045"/>
+
+      <!-- ============= BUILDING SHELL ============= -->
+      <!-- outer wall (one big rect for the whole building, then we paint floors over it) -->
+      <rect x="20" y="172" width="760" height="490" fill="#3a3045"/>
+      <!-- top trim shadow -->
+      <rect x="20" y="172" width="760" height="3" fill="#5d4f6d" opacity="0.6"/>
+      <!-- bottom trim shadow -->
+      <rect x="20" y="659" width="760" height="3" fill="#1d1828" opacity="0.8"/>
+
+      <!-- ===== TOP ROW ROOMS (DESIGN | UI/UX | CODE) ===== -->
+
+      <!-- DESIGN -->
+      <g class="room design" data-room="design">
+        <rect x="26" y="178" width="246" height="198" fill="url(#planks)"/>
+        <ellipse cx="149" cy="277" rx="100" ry="60" fill="url(#glow-design)"/>
+
+        <!-- arched window on back wall (top of room) -->
+        <path d="M120 184 Q149 168 178 184 L178 210 L120 210 Z" fill="#1c1830" stroke="#e8a04a" stroke-opacity="0.4" stroke-width="0.5"/>
+        <line x1="149" y1="174" x2="149" y2="210" stroke="#e8a04a" stroke-opacity="0.3" stroke-width="0.4"/>
+
+        <!-- easel left -->
+        <line x1="46" y1="290" x2="60" y2="240" stroke="#e8a04a" stroke-opacity="0.5" stroke-width="0.6"/>
+        <line x1="78" y1="290" x2="60" y2="240" stroke="#e8a04a" stroke-opacity="0.5" stroke-width="0.6"/>
+        <line x1="50" y1="290" x2="74" y2="290" stroke="#e8a04a" stroke-opacity="0.4" stroke-width="0.6"/>
+        <rect x="44" y="232" width="36" height="28" fill="#f2ead7" opacity="0.92"/>
+        <circle cx="56" cy="244" r="3" fill="#e8a04a"/>
+        <rect x="62" y="242" width="12" height="2" fill="#d66c6c"/>
+        <rect x="62" y="248" width="8" height="2" fill="#9d7cd8"/>
+        <rect x="62" y="254" width="14" height="1.5" fill="#5ec8c0"/>
+
+        <!-- desk with palette -->
+        <use href="#desk" x="180" y="298" width="64" height="22"/>
+        <rect x="186" y="296" width="8" height="2" fill="#e8a04a"/>
+        <rect x="198" y="296" width="6" height="2" fill="#d66c6c"/>
+        <rect x="208" y="296" width="6" height="2" fill="#5ec8c0"/>
+        <rect x="218" y="296" width="6" height="2" fill="#9d7cd8"/>
+        <!-- brush pot -->
+        <rect x="232" y="294" width="6" height="6" fill="#3a2a1a"/>
+        <line x1="234" y1="285" x2="234" y2="294" stroke="#e8a04a" stroke-width="0.7"/>
+        <line x1="236" y1="288" x2="236" y2="294" stroke="#d66c6c" stroke-width="0.7"/>
+
+        <!-- chairs -->
+        <use href="#chair" x="186" y="330" width="14" height="14"/>
+        <use href="#chair" x="218" y="330" width="14" height="14"/>
+
+        <!-- agents -->
+        <g transform="translate(64 274)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+        <g transform="translate(190 318)" class="breath b2 room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <!-- soul mote -->
+        <circle cx="149" cy="240" r="1.4" fill="#e8a04a" opacity="0.85">
+          <animate attributeName="cy" values="240;232;240" dur="4s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- label -->
+        <text x="36" y="370" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">DESIGN</text>
+        <text x="100" y="370" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e8a04a" opacity="0.7">— atelier · 2/2</text>
+
+        <rect class="room-tint" x="26" y="178" width="246" height="198"/>
+        <rect class="room-stroke" x="26" y="178" width="246" height="198" fill="none"/>
+        <text class="enter-hint" x="234" y="190" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e8a04a" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <!-- inner wall vertical between design/uiux -->
+      <rect x="272" y="178" width="6" height="198" fill="#3a3045"/>
+      <rect x="272" y="178" width="6" height="3" fill="#5d4f6d" opacity="0.6"/>
+
+      <!-- UI/UX -->
+      <g class="room uiux" data-room="uiux">
+        <rect x="278" y="178" width="246" height="198" fill="url(#planks)"/>
+        <ellipse cx="401" cy="277" rx="100" ry="60" fill="url(#glow-uiux)"/>
+
+        <!-- back wall: journey-map board -->
+        <rect x="306" y="190" width="190" height="60" fill="#0e0b1a" stroke="#5ec8c0" stroke-opacity="0.4" stroke-width="0.5"/>
+        <!-- flow boxes -->
+        <rect x="316" y="208" width="20" height="14" fill="none" stroke="#5ec8c0" stroke-opacity="0.7" stroke-width="0.6"/>
+        <rect x="356" y="208" width="20" height="14" fill="none" stroke="#5ec8c0" stroke-opacity="0.7" stroke-width="0.6"/>
+        <rect x="396" y="208" width="20" height="14" fill="#5ec8c0" opacity="0.35"/>
+        <rect x="436" y="208" width="20" height="14" fill="none" stroke="#5ec8c0" stroke-opacity="0.7" stroke-width="0.6"/>
+        <rect x="476" y="208" width="14" height="14" fill="none" stroke="#5ec8c0" stroke-opacity="0.7" stroke-width="0.6"/>
+        <line x1="336" y1="215" x2="356" y2="215" stroke="#5ec8c0" stroke-opacity="0.5" stroke-width="0.5" stroke-dasharray="2,1"/>
+        <line x1="376" y1="215" x2="396" y2="215" stroke="#5ec8c0" stroke-opacity="0.5" stroke-width="0.5" stroke-dasharray="2,1"/>
+        <line x1="416" y1="215" x2="436" y2="215" stroke="#5ec8c0" stroke-opacity="0.5" stroke-width="0.5" stroke-dasharray="2,1"/>
+        <line x1="456" y1="215" x2="476" y2="215" stroke="#5ec8c0" stroke-opacity="0.5" stroke-width="0.5" stroke-dasharray="2,1"/>
+        <!-- sticky notes -->
+        <rect x="318" y="230" width="12" height="12" fill="#e4c056" opacity="0.75"/>
+        <rect x="398" y="230" width="12" height="12" fill="#e07a95" opacity="0.75"/>
+        <rect x="478" y="230" width="10" height="10" fill="#5ec8c0" opacity="0.75"/>
+
+        <!-- shared desks -->
+        <use href="#desk" x="306" y="290" width="60" height="22"/>
+        <use href="#desk" x="436" y="290" width="60" height="22"/>
+        <use href="#chair" x="320" y="324" width="14" height="14"/>
+        <use href="#chair" x="450" y="324" width="14" height="14"/>
+
+        <!-- agents -->
+        <g transform="translate(322 308)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+        <g transform="translate(452 308)" class="breath b2 room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <text x="288" y="370" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">UI / UX</text>
+        <text x="345" y="370" font-family="IBM Plex Mono, monospace" font-size="7" fill="#5ec8c0" opacity="0.7">— wayfinding · 2/3</text>
+
+        <rect class="room-tint" x="278" y="178" width="246" height="198"/>
+        <rect class="room-stroke" x="278" y="178" width="246" height="198" fill="none"/>
+        <text class="enter-hint" x="486" y="190" font-family="IBM Plex Mono, monospace" font-size="7" fill="#5ec8c0" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <!-- inner wall vertical between uiux/code -->
+      <rect x="524" y="178" width="6" height="198" fill="#3a3045"/>
+      <rect x="524" y="178" width="6" height="3" fill="#5d4f6d" opacity="0.6"/>
+
+      <!-- CODE REVIEW -->
+      <g class="room code" data-room="code">
+        <rect x="530" y="178" width="244" height="198" fill="url(#planks)"/>
+        <ellipse cx="652" cy="277" rx="100" ry="60" fill="url(#glow-code)"/>
+
+        <!-- two monitors on desks -->
+        <use href="#desk" x="544" y="218" width="100" height="22"/>
+        <use href="#desk" x="660" y="218" width="100" height="22"/>
+
+        <rect x="558" y="200" width="40" height="20" fill="#0e0b1a" stroke="#9d7cd8" stroke-opacity="0.55" stroke-width="0.5"/>
+        <rect x="676" y="200" width="40" height="20" fill="#0e0b1a" stroke="#9d7cd8" stroke-opacity="0.55" stroke-width="0.5"/>
+        <!-- code lines on monitor 1 -->
+        <rect x="562" y="204" width="18" height="1.5" fill="#9d7cd8" opacity="0.85"/>
+        <rect x="562" y="208" width="22" height="1.5" fill="#5ec8c0" opacity="0.7"/>
+        <rect x="566" y="212" width="18" height="1.5" fill="#e4c056" opacity="0.6"/>
+        <rect x="562" y="216" width="26" height="1.5" fill="#9d7cd8" opacity="0.5"/>
+        <!-- code lines on monitor 2 -->
+        <rect x="680" y="204" width="20" height="1.5" fill="#d66c6c" opacity="0.85"/>
+        <rect x="680" y="208" width="14" height="1.5" fill="#9d7cd8" opacity="0.6"/>
+        <rect x="684" y="212" width="22" height="1.5" fill="#5ec8c0" opacity="0.7"/>
+        <rect x="680" y="216" width="18" height="1.5" fill="#9d7cd8" opacity="0.5"/>
+
+        <!-- chairs facing monitors -->
+        <use href="#chair" x="571" y="248" width="14" height="14"/>
+        <use href="#chair" x="689" y="248" width="14" height="14"/>
+
+        <!-- standing reviewer in middle -->
+        <g transform="translate(642 290)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <!-- stack of papers / books -->
+        <rect x="554" y="296" width="20" height="3" fill="#3a2a1a"/>
+        <rect x="554" y="293" width="20" height="3" fill="#5a3f28"/>
+        <rect x="554" y="290" width="20" height="3" fill="#3a2a1a"/>
+
+        <text x="540" y="370" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">CODE REVIEW</text>
+        <text x="640" y="370" font-family="IBM Plex Mono, monospace" font-size="7" fill="#9d7cd8" opacity="0.7">— scriptorium · 1/2</text>
+
+        <rect class="room-tint" x="530" y="178" width="244" height="198"/>
+        <rect class="room-stroke" x="530" y="178" width="244" height="198" fill="none"/>
+        <text class="enter-hint" x="736" y="190" font-family="IBM Plex Mono, monospace" font-size="7" fill="#9d7cd8" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <!-- ===== HALLWAY (between rows) ===== -->
+      <!-- horizontal wall above hallway -->
+      <rect x="26" y="376" width="748" height="6" fill="#3a3045"/>
+      <!-- door gaps in that wall (per room above) -->
+      <rect x="138" y="376" width="22" height="6" fill="#161122"/>
+      <rect x="390" y="376" width="22" height="6" fill="#161122"/>
+      <rect x="640" y="376" width="22" height="6" fill="#161122"/>
+      <!-- door frames (colored to soul) -->
+      <rect x="138" y="376" width="2" height="6" fill="#e8a04a"/>
+      <rect x="158" y="376" width="2" height="6" fill="#e8a04a"/>
+      <rect x="390" y="376" width="2" height="6" fill="#5ec8c0"/>
+      <rect x="410" y="376" width="2" height="6" fill="#5ec8c0"/>
+      <rect x="640" y="376" width="2" height="6" fill="#9d7cd8"/>
+      <rect x="660" y="376" width="2" height="6" fill="#9d7cd8"/>
+
+      <!-- hallway floor -->
+      <rect x="26" y="382" width="748" height="50" fill="url(#hall-floor)"/>
+      <!-- soft hall lighting from above -->
+      <rect x="26" y="382" width="748" height="50" fill="url(#glow-common)" opacity="0.5"/>
+      <!-- a couple of plants in the hallway -->
+      <ellipse cx="40" cy="412" rx="6" ry="3" fill="#000" opacity="0.5"/>
+      <rect x="36" y="402" width="8" height="10" fill="#3a2a1a"/>
+      <ellipse cx="40" cy="397" rx="7" ry="6" fill="#3d7a4a"/>
+      <ellipse cx="36" cy="394" rx="3" ry="4" fill="#4a9258"/>
+      <ellipse cx="44" cy="395" rx="3" ry="4" fill="#4a9258"/>
+
+      <ellipse cx="760" cy="412" rx="6" ry="3" fill="#000" opacity="0.5"/>
+      <rect x="756" y="402" width="8" height="10" fill="#3a2a1a"/>
+      <ellipse cx="760" cy="397" rx="7" ry="6" fill="#3d7a4a"/>
+      <ellipse cx="756" cy="394" rx="3" ry="4" fill="#4a9258"/>
+      <ellipse cx="764" cy="395" rx="3" ry="4" fill="#4a9258"/>
+
+      <!-- a wandering figure in the hall -->
+      <g transform="translate(393 402)" class="breath"><use href="#hk" width="14" height="20"/></g>
+
+      <!-- horizontal wall below hallway -->
+      <rect x="26" y="432" width="748" height="6" fill="#3a3045"/>
+      <!-- door gaps for bottom rooms -->
+      <rect x="138" y="432" width="22" height="6" fill="#161122"/>
+      <rect x="390" y="432" width="22" height="6" fill="#161122"/>
+      <rect x="640" y="432" width="22" height="6" fill="#161122"/>
+      <rect x="138" y="432" width="2" height="6" fill="#e07a95"/>
+      <rect x="158" y="432" width="2" height="6" fill="#e07a95"/>
+      <rect x="390" y="432" width="2" height="6" fill="#e4c056"/>
+      <rect x="410" y="432" width="2" height="6" fill="#e4c056"/>
+      <rect x="640" y="432" width="2" height="6" fill="#d66c6c"/>
+      <rect x="660" y="432" width="2" height="6" fill="#d66c6c"/>
+
+      <!-- ===== BOTTOM ROW ROOMS ===== -->
+
+      <!-- FRONT-END -->
+      <g class="room front" data-room="front">
+        <rect x="26" y="438" width="246" height="218" fill="url(#planks)"/>
+        <ellipse cx="149" cy="547" rx="100" ry="65" fill="url(#glow-front)"/>
+
+        <!-- big monitor showing browser mock -->
+        <rect x="48" y="458" width="84" height="56" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.55" stroke-width="0.5"/>
+        <rect x="48" y="458" width="84" height="6" fill="#1c1830"/>
+        <circle cx="52" cy="461" r="1.2" fill="#d66c6c"/>
+        <circle cx="56" cy="461" r="1.2" fill="#e4c056"/>
+        <circle cx="60" cy="461" r="1.2" fill="#5ec8c0"/>
+        <rect x="54" y="472" width="48" height="3" fill="#e07a95" opacity="0.6"/>
+        <rect x="54" y="478" width="72" height="1.5" fill="#f2ead7" opacity="0.2"/>
+        <rect x="54" y="482" width="56" height="1.5" fill="#f2ead7" opacity="0.2"/>
+        <rect x="54" y="490" width="22" height="14" fill="#e07a95" opacity="0.3"/>
+        <rect x="80" y="490" width="22" height="14" fill="#e07a95" opacity="0.3"/>
+        <rect x="106" y="490" width="22" height="14" fill="#e07a95" opacity="0.3"/>
+        <use href="#desk" x="40" y="514" width="100" height="20"/>
+
+        <!-- phone mockup -->
+        <rect x="160" y="468" width="20" height="36" rx="2" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.6" stroke-width="0.5"/>
+        <rect x="162" y="472" width="16" height="26" fill="#e07a95" opacity="0.25"/>
+        <rect x="164" y="476" width="6" height="2" fill="#f2ead7" opacity="0.5"/>
+
+        <!-- tablet -->
+        <rect x="194" y="478" width="32" height="22" fill="#0e0b1a" stroke="#e07a95" stroke-opacity="0.5" stroke-width="0.4"/>
+        <rect x="196" y="480" width="28" height="3" fill="#e07a95" opacity="0.5"/>
+        <rect x="196" y="486" width="20" height="2" fill="#f2ead7" opacity="0.3"/>
+        <rect x="196" y="490" width="24" height="2" fill="#f2ead7" opacity="0.3"/>
+
+        <!-- chairs and figures -->
+        <use href="#chair" x="60" y="540" width="14" height="14"/>
+        <use href="#chair" x="100" y="540" width="14" height="14"/>
+        <g transform="translate(62 524)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+        <g transform="translate(180 540)" class="breath b2 room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <text x="36" y="650" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">FRONT-END</text>
+        <text x="118" y="650" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e07a95" opacity="0.7">— looking glass · 2/2</text>
+
+        <rect class="room-tint" x="26" y="438" width="246" height="218"/>
+        <rect class="room-stroke" x="26" y="438" width="246" height="218" fill="none"/>
+        <text class="enter-hint" x="234" y="450" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e07a95" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <rect x="272" y="438" width="6" height="218" fill="#3a3045"/>
+      <rect x="272" y="438" width="6" height="3" fill="#5d4f6d" opacity="0.6"/>
+
+      <!-- MARKETING -->
+      <g class="room market" data-room="market">
+        <rect x="278" y="438" width="246" height="218" fill="url(#planks)"/>
+        <ellipse cx="401" cy="547" rx="100" ry="65" fill="url(#glow-market)"/>
+
+        <!-- pin board -->
+        <rect x="296" y="458" width="80" height="60" fill="#1c1830" stroke="#e4c056" stroke-opacity="0.45" stroke-width="0.5"/>
+        <rect x="304" y="466" width="16" height="20" fill="#e07a95" opacity="0.7"/>
+        <rect x="324" y="464" width="16" height="16" fill="#5ec8c0" opacity="0.7"/>
+        <rect x="346" y="466" width="20" height="22" fill="#e4c056" opacity="0.7"/>
+        <rect x="306" y="492" width="22" height="3" fill="#9d7cd8" opacity="0.6"/>
+        <rect x="334" y="490" width="28" height="3" fill="#f2ead7" opacity="0.6"/>
+        <rect x="306" y="500" width="18" height="3" fill="#e07a95" opacity="0.6"/>
+        <rect x="332" y="498" width="32" height="3" fill="#e4c056" opacity="0.6"/>
+
+        <!-- analytics screen on right wall -->
+        <rect x="396" y="464" width="110" height="56" fill="#0e0b1a" stroke="#e4c056" stroke-opacity="0.5" stroke-width="0.5"/>
+        <polyline points="406,510 422,498 438,504 454,486 470,492 486,478 500,484" fill="none" stroke="#e4c056" stroke-width="1.2"/>
+        <rect x="408" y="472" width="4" height="22" fill="#e4c056" opacity="0.5"/>
+        <rect x="418" y="478" width="4" height="16" fill="#e4c056" opacity="0.5"/>
+        <rect x="428" y="470" width="4" height="24" fill="#e4c056" opacity="0.5"/>
+        <rect x="438" y="476" width="4" height="18" fill="#e4c056" opacity="0.5"/>
+
+        <!-- desk and figure -->
+        <use href="#desk" x="320" y="540" width="120" height="22"/>
+        <!-- coffee mug -->
+        <rect x="336" y="536" width="6" height="6" fill="#f2ead7"/>
+        <rect x="338" y="538" width="3" height="2" fill="#5a3f28"/>
+        <use href="#chair" x="376" y="568" width="14" height="14"/>
+        <g transform="translate(378 552)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <text x="288" y="650" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">MARKETING</text>
+        <text x="368" y="650" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e4c056" opacity="0.7">— heralds · 1/2</text>
+
+        <rect class="room-tint" x="278" y="438" width="246" height="218"/>
+        <rect class="room-stroke" x="278" y="438" width="246" height="218" fill="none"/>
+        <text class="enter-hint" x="486" y="450" font-family="IBM Plex Mono, monospace" font-size="7" fill="#e4c056" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <rect x="524" y="438" width="6" height="218" fill="#3a3045"/>
+      <rect x="524" y="438" width="6" height="3" fill="#5d4f6d" opacity="0.6"/>
+
+      <!-- CYBER-SEC -->
+      <g class="room sec" data-room="sec">
+        <rect x="530" y="438" width="244" height="218" fill="#0c0814"/>
+        <ellipse cx="652" cy="547" rx="100" ry="65" fill="url(#glow-sec)"/>
+
+        <!-- bank of monitors -->
+        <rect x="548" y="464" width="36" height="26" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.4" stroke-width="0.5"/>
+        <rect x="592" y="458" width="42" height="32" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.7" stroke-width="0.6"/>
+        <rect x="642" y="458" width="42" height="32" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.7" stroke-width="0.6"/>
+        <rect x="692" y="464" width="36" height="26" fill="#0e0b1a" stroke="#d66c6c" stroke-opacity="0.4" stroke-width="0.5"/>
+
+        <!-- main monitor terminal -->
+        <rect x="596" y="464" width="16" height="1.6" fill="#d66c6c"/>
+        <rect x="596" y="468" width="22" height="1.6" fill="#d66c6c" opacity="0.85"/>
+        <rect x="600" y="472" width="18" height="1.6" fill="#d66c6c" opacity="0.65"/>
+        <rect x="596" y="476" width="28" height="1.6" fill="#e4c056" opacity="0.7"/>
+        <rect x="596" y="480" width="14" height="1.6" fill="#d66c6c">
+          <animate attributeName="opacity" values="0.95;0.3;0.95" dur="1.2s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="596" y="484" width="20" height="1.6" fill="#d66c6c" opacity="0.55"/>
+
+        <rect x="646" y="464" width="20" height="1.6" fill="#d66c6c" opacity="0.85"/>
+        <rect x="646" y="468" width="32" height="1.6" fill="#5ec8c0" opacity="0.7"/>
+        <rect x="650" y="472" width="22" height="1.6" fill="#d66c6c" opacity="0.65"/>
+        <rect x="646" y="476" width="28" height="1.6" fill="#d66c6c" opacity="0.5"/>
+
+        <!-- side monitors: dim grids -->
+        <g opacity="0.45">
+          <rect x="552" y="468" width="3" height="3" fill="#d66c6c"/>
+          <rect x="558" y="468" width="3" height="3" fill="#d66c6c"/>
+          <rect x="564" y="474" width="3" height="3" fill="#d66c6c"/>
+          <rect x="570" y="468" width="3" height="3" fill="#d66c6c"/>
+          <rect x="552" y="478" width="3" height="3" fill="#d66c6c"/>
+          <rect x="576" y="482" width="3" height="3" fill="#d66c6c"/>
+        </g>
+        <g opacity="0.45">
+          <rect x="696" y="470" width="3" height="3" fill="#d66c6c"/>
+          <rect x="704" y="476" width="3" height="3" fill="#d66c6c"/>
+          <rect x="712" y="470" width="3" height="3" fill="#d66c6c"/>
+          <rect x="720" y="478" width="3" height="3" fill="#d66c6c"/>
+          <rect x="704" y="482" width="3" height="3" fill="#d66c6c"/>
+        </g>
+
+        <!-- desk -->
+        <use href="#desk" x="544" y="500" width="220" height="20"/>
+
+        <!-- single watcher -->
+        <use href="#chair" x="645" y="528" width="14" height="14"/>
+        <g transform="translate(647 512)" class="breath room-figure"><use href="#hk" width="14" height="20"/></g>
+
+        <!-- server rack on side -->
+        <rect x="744" y="500" width="14" height="60" fill="#1c1830" stroke="#d66c6c" stroke-opacity="0.4" stroke-width="0.4"/>
+        <rect x="746" y="504" width="10" height="2" fill="#d66c6c" opacity="0.7"/>
+        <rect x="746" y="510" width="10" height="2" fill="#d66c6c" opacity="0.5"/>
+        <rect x="746" y="516" width="10" height="2" fill="#5ec8c0" opacity="0.5"/>
+        <rect x="746" y="522" width="10" height="2" fill="#d66c6c" opacity="0.7"/>
+        <rect x="746" y="528" width="10" height="2" fill="#d66c6c" opacity="0.5"/>
+
+        <text x="540" y="650" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7">CYBER-SEC</text>
+        <text x="612" y="650" font-family="IBM Plex Mono, monospace" font-size="7" fill="#d66c6c" opacity="0.7">— watchtower · 1/2</text>
+
+        <rect class="room-tint" x="530" y="438" width="244" height="218"/>
+        <rect class="room-stroke" x="530" y="438" width="244" height="218" fill="none"/>
+        <text class="enter-hint" x="736" y="450" font-family="IBM Plex Mono, monospace" font-size="7" fill="#d66c6c" letter-spacing="1.5">ENTER ›</text>
+      </g>
+
+      <!-- corridor connecting building's bottom edge to the great hall -->
+      <rect x="392" y="662" width="16" height="22" fill="#161122"/>
+      <rect x="386" y="662" width="6" height="22" fill="#3a3045"/>
+      <rect x="408" y="662" width="6" height="22" fill="#3a3045"/>
+
+      <!-- ============= THE GREAT HALL ============= -->
+      <g class="room common" data-room="common">
+        <!-- shell -->
+        <rect x="20" y="684" width="760" height="246" fill="#3a3045"/>
+        <rect x="26" y="690" width="748" height="234" fill="#15101e"/>
+        <ellipse cx="400" cy="800" rx="320" ry="100" fill="url(#glow-common)"/>
+
+        <!-- back wall: three gothic arches -->
+        <path d="M120 760 L120 720 Q170 685 220 720 L220 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.6"/>
+        <path d="M340 760 L340 712 Q400 680 460 712 L460 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.32" stroke-width="0.7"/>
+        <path d="M580 760 L580 720 Q630 685 680 720 L680 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.6"/>
+        <ellipse cx="400" cy="740" rx="60" ry="20" fill="#f2ead7" opacity="0.06"/>
+
+        <!-- columns -->
+        <rect x="116" y="690" width="6" height="70" fill="#0a0814"/>
+        <rect x="218" y="690" width="6" height="70" fill="#0a0814"/>
+        <rect x="336" y="690" width="6" height="70" fill="#0a0814"/>
+        <rect x="458" y="690" width="6" height="70" fill="#0a0814"/>
+        <rect x="576" y="690" width="6" height="70" fill="#0a0814"/>
+        <rect x="678" y="690" width="6" height="70" fill="#0a0814"/>
+
+        <!-- floor mosaic -->
+        <line x1="26" y1="780" x2="774" y2="780" stroke="#f2ead7" stroke-opacity="0.05"/>
+        <line x1="26" y1="820" x2="774" y2="820" stroke="#f2ead7" stroke-opacity="0.04"/>
+        <line x1="26" y1="870" x2="774" y2="870" stroke="#f2ead7" stroke-opacity="0.03"/>
+
+        <!-- round table -->
+        <ellipse cx="400" cy="850" rx="120" ry="22" fill="#3a2a1a"/>
+        <ellipse cx="400" cy="844" rx="120" ry="22" fill="#5a3f28"/>
+        <ellipse cx="400" cy="844" rx="114" ry="18" fill="#3a2a1a"/>
+        <ellipse cx="400" cy="844" rx="114" ry="18" fill="none" stroke="#7a5540" stroke-opacity="0.5" stroke-width="0.6"/>
+        <!-- objects on table -->
+        <rect x="368" y="836" width="12" height="6" fill="#f2ead7" opacity="0.6" transform="rotate(8 374 839)"/>
+        <rect x="412" y="838" width="14" height="6" fill="#f2ead7" opacity="0.4" transform="rotate(-4 419 841)"/>
+        <circle cx="400" cy="841" r="3" fill="#e4c056" opacity="0.95">
+          <animate attributeName="opacity" values="0.95;0.55;0.95" dur="3s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- agents around the table, each with their soul color tint -->
+        <g class="room-figure">
+          <g transform="translate(280 818)" class="breath"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(312 808)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(352 802)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(392 800)" class="breath"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(432 802)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(472 808)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
+          <g transform="translate(504 818)" class="breath"><use href="#hk" width="16" height="22"/></g>
+        </g>
+
+        <!-- soul-color marker beside each figure -->
+        <circle cx="276" cy="826" r="2" fill="#e8a04a" opacity="0.85"/>
+        <circle cx="308" cy="816" r="2" fill="#5ec8c0" opacity="0.85"/>
+        <circle cx="348" cy="810" r="2" fill="#9d7cd8" opacity="0.85"/>
+        <circle cx="388" cy="808" r="2" fill="#9de0f0" opacity="0.95"/>
+        <circle cx="448" cy="810" r="2" fill="#e07a95" opacity="0.85"/>
+        <circle cx="488" cy="816" r="2" fill="#e4c056" opacity="0.85"/>
+        <circle cx="520" cy="826" r="2" fill="#d66c6c" opacity="0.85"/>
+
+        <!-- floating souls under arches -->
+        <circle cx="400" cy="730" r="1.6" fill="#f2ead7" opacity="0.85">
+          <animate attributeName="cy" values="730;716;730" dur="5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="170" cy="740" r="1.2" fill="#5ec8c0" opacity="0.7">
+          <animate attributeName="cy" values="740;726;740" dur="6s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="630" cy="740" r="1.2" fill="#e8a04a" opacity="0.7">
+          <animate attributeName="cy" values="740;724;740" dur="5.5s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- label -->
+        <text x="32" y="920" font-family="Cinzel, serif" font-size="11" letter-spacing="5" fill="#f2ead7">THE GREAT HALL</text>
+        <text x="220" y="920" font-family="IBM Plex Mono, monospace" font-size="8" fill="#b9b2a3" opacity="0.7">— where all agents gather and speak in turn</text>
+        <text x="700" y="920" font-family="IBM Plex Mono, monospace" font-size="8" fill="#b9b2a3" opacity="0.7" text-anchor="end">7 present</text>
+
+        <rect class="room-tint" x="26" y="690" width="748" height="234"/>
+        <rect class="room-stroke" x="26" y="690" width="748" height="234" fill="none"/>
+        <text class="enter-hint" x="700" y="704" font-family="IBM Plex Mono, monospace" font-size="8" fill="#f2ead7" letter-spacing="2" text-anchor="end">CONVENE ›</text>
+      </g>
+
+      <!-- vignette overlay across whole building -->
+      <rect width="800" height="940" fill="url(#vignette)" pointer-events="none"/>
+
+    </svg>
+
+  </div>
+
+  <!-- ========== CUSTOM HALLS ========== -->
+  <div class="section-label">Custom Construction</div>
+  <div class="custom">
+    <div class="custom-tile" onclick="alert('Forge a new hall: pick a theme, name it, assign specialist agents, define tools.')">
+      <div class="ic">+</div>
+      <div class="tx">forge a new hall</div>
+    </div>
+    <div class="custom-tile" onclick="alert('Browse community halls: rooms built and shared by the community.')">
+      <div class="ic">⌘</div>
+      <div class="tx">community halls</div>
+    </div>
+    <div class="custom-tile" onclick="alert('Themes: Hollow (current), Ash, Stargrove, Terminal, Studio Ghibli...')">
+      <div class="ic">◈</div>
+      <div class="tx">switch theme</div>
+    </div>
+  </div>
+
+  <footer>
+    <div>built on claude · your agents, your rooms</div>
+    <div class="links"><span>DOCS</span><span>COMMUNITY</span><span>THEMES</span><span>GITHUB</span></div>
+  </footer>
+
+</div>
+
+<!-- ========== MODAL ========== -->
+<div class="veil" id="veil" onclick="if(event.target===this)closeChamber()">
+  <div class="dialog" id="dialog">
+    <div class="dialog-head">
+      <h2 id="d-title">DESIGN</h2>
+      <p id="d-sub">Typography, visual systems, motion, composition, brand.</p>
+      <button class="close-x" onclick="closeChamber()">✕</button>
+    </div>
+
+    <div class="dialog-body">
+      <button class="all-btn" onclick="toggleAll()" id="all-btn">◻  Summon all in hall</button>
+      <div class="agents-list" id="agents-list"></div>
+      <textarea class="prompt-field" id="prompt" placeholder="Speak your intent to the hall. The agents will deliberate and return…"></textarea>
+      <div class="handoff">
+        <span>then hand to:</span>
+        <select id="handoff-sel">
+          <option value="">— no handoff —</option>
+          <option>UI / UX</option>
+          <option>CODE REVIEW</option>
+          <option>FRONT-END</option>
+          <option>MARKETING</option>
+          <option>CYBER-SEC</option>
+          <option>THE GREAT HALL</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dialog-foot">
+      <div class="turn-note" id="turn-note">no agents selected</div>
+      <button class="send" onclick="sendPrompt()">COMMUNE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- dust ----
+(function(){
+  const d = document.getElementById('dust');
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDuration = (18 + Math.random() * 28) + 's';
+    s.style.animationDelay = -Math.random() * 20 + 's';
+    s.style.opacity = (0.2 + Math.random() * 0.4);
+    d.appendChild(s);
+  }
+})();
+
+// ---- room data ----
+const CHAMBERS = {
+  design:  { title: 'DESIGN',       sub: 'Typography, visual systems, motion, composition, brand.', accent: '#e8a04a', agents: [{n:'maya',t:'design lead'},{n:'iri',t:'motion & type'}] },
+  uiux:    { title: 'UI / UX',      sub: 'Information architecture, flows, interactions, accessibility.', accent: '#5ec8c0', agents: [{n:'oren',t:'ia / flows'},{n:'vel',t:'research'}] },
+  code:    { title: 'CODE REVIEW',  sub: 'Correctness, structure, performance, tests, taste.', accent: '#9d7cd8', agents: [{n:'aldric',t:'architecture'},{n:'mire',t:'tests & perf'}] },
+  front:   { title: 'FRONT-END',    sub: 'React, Vue, CSS, animation, component systems.', accent: '#e07a95', agents: [{n:'pell',t:'react / state'},{n:'rue',t:'css & motion'}] },
+  market:  { title: 'MARKETING',    sub: 'Positioning, copy, channels, launches, growth.', accent: '#e4c056', agents: [{n:'solis',t:'positioning'},{n:'ember',t:'copy & launch'}] },
+  sec:     { title: 'CYBER-SEC',    sub: 'Threat models, auth, crypto, red team, RE.', accent: '#d66c6c', agents: [{n:'kai',t:'threat model'},{n:'noct',t:'reverse eng'}] },
+  oracle:  { title: 'THE ORACLE',   sub: 'Speak freely. The oracle routes your intent to the proper halls and coordinates the reply.', accent: '#9de0f0', agents: [{n:'the oracle',t:'auto-routes to halls'}] },
+  common:  { title: 'THE GREAT HALL', sub: 'All summoned agents gather and speak in sequence. Use when a task spans multiple disciplines.', accent: '#f2ead7',
+             agents: [{n:'maya',t:'design'},{n:'oren',t:'ui/ux'},{n:'aldric',t:'code'},{n:'pell',t:'front-end'},{n:'solis',t:'marketing'},{n:'kai',t:'cyber-sec'},{n:'oracle',t:'moderator'}] }
+};
+
+// ---- modal ----
+let currentRoom = null;
+let picked = new Set();
+
+function openChamber(key) {
+  const room = CHAMBERS[key]; if (!room) return;
+  currentRoom = key; picked = new Set();
+  const dialog = document.getElementById('dialog');
+  dialog.style.setProperty('--accent', room.accent);
+  document.getElementById('d-title').textContent = room.title;
+  document.getElementById('d-sub').textContent = room.sub;
+  const list = document.getElementById('agents-list'); list.innerHTML = '';
+  room.agents.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'agent-card';
+    card.innerHTML = `
+      <svg class="av" viewBox="0 0 16 22"><use href="#hk-modal"/></svg>
+      <div class="info"><div class="nm">${a.n}</div><div class="tag">${a.t}</div></div>
+      <div class="dot"></div>`;
+    card.onclick = () => togglePick(card, a.n);
+    list.appendChild(card);
+  });
+  // inject HK symbol into modal scope (since the building SVG isn't in DOM order before)
+  if (!document.getElementById('hk-modal-defs')) {
+    const def = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    def.setAttribute('width','0'); def.setAttribute('height','0'); def.id = 'hk-modal-defs';
+    def.style.position='absolute';
+    def.innerHTML = `<defs><symbol id="hk-modal" viewBox="0 0 16 22">
+      <ellipse cx="8" cy="20" rx="6" ry="1.2" fill="#000" opacity="0.45"/>
+      <path d="M8 2 C5 2 3.5 4 3.5 7.5 L3.5 16 C3.5 18 4.5 19 6 19 L10 19 C11.5 19 12.5 18 12.5 16 L12.5 7.5 C12.5 4 11 2 8 2 Z" fill="#f2ead7"/>
+      <path d="M4.5 4 L2 -1 L6 3 Z" fill="#f2ead7"/><path d="M11.5 4 L14 -1 L10 3 Z" fill="#f2ead7"/>
+      <ellipse cx="6" cy="7.5" rx="1.1" ry="1.6" fill="#070510"/><ellipse cx="10" cy="7.5" rx="1.1" ry="1.6" fill="#070510"/>
+    </symbol></defs>`;
+    document.body.appendChild(def);
+  }
+  updateTurnNote();
+  document.getElementById('prompt').value = '';
+  document.getElementById('all-btn').textContent = '◻  Summon all in hall';
+  document.getElementById('veil').classList.add('open');
+}
+
+function closeChamber() { document.getElementById('veil').classList.remove('open'); currentRoom = null; }
+
+function togglePick(card, name) {
+  if (picked.has(name)) { picked.delete(name); card.classList.remove('picked'); }
+  else { picked.add(name); card.classList.add('picked'); }
+  updateTurnNote();
+}
+
+function toggleAll() {
+  const room = CHAMBERS[currentRoom];
+  const cards = document.querySelectorAll('.agent-card');
+  const btn = document.getElementById('all-btn');
+  if (picked.size === room.agents.length) {
+    picked.clear(); cards.forEach(c => c.classList.remove('picked'));
+    btn.textContent = '◻  Summon all in hall';
+  } else {
+    picked = new Set(room.agents.map(a => a.n));
+    cards.forEach(c => c.classList.add('picked'));
+    btn.textContent = '◼  All summoned';
+  }
+  updateTurnNote();
+}
+
+function updateTurnNote() {
+  const n = picked.size;
+  const note = document.getElementById('turn-note');
+  if (n === 0) note.textContent = 'no agents selected';
+  else if (n === 1) note.textContent = '1 agent will respond · ~1 turn';
+  else note.textContent = `${n} agents · up to ${n * 2} turns of exchange`;
+}
+
+function sendPrompt() {
+  const p = document.getElementById('prompt').value.trim();
+  if (!p) { document.getElementById('prompt').focus(); return; }
+  if (picked.size === 0) { document.getElementById('turn-note').textContent = '⚠ select at least one agent'; return; }
+  const btn = document.querySelector('.send');
+  btn.textContent = 'SENT ✓'; btn.disabled = true;
+  setTimeout(() => { btn.textContent = 'COMMUNE'; btn.disabled = false; closeChamber(); }, 900);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeChamber(); });
+
+// wire SVG room clicks
+document.querySelectorAll('.room').forEach(g => {
+  g.addEventListener('click', () => openChamber(g.dataset.room));
+});
+</script>
+
+</body>
+</html>
