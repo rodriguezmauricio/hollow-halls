@@ -6,6 +6,25 @@
   "publisher": "hollow-halls",
   "private": true,
   "license": "MIT",
+  "author": "Mauricio Rodriguez",
+  "homepage": "https://github.com/rodriguezmauricio/hollow-halls#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rodriguezmauricio/hollow-halls.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rodriguezmauricio/hollow-halls/issues"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "ollama",
+    "agents",
+    "multi-agent",
+    "llm",
+    "spatial",
+    "vscode-extension"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },

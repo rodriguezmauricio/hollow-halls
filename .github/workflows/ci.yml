@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build (production)
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+      - name: Check bundle budgets
+        # Per CLAUDE.md: extension.js < 500KB, webview.js + css + fonts < 800KB.
+        # If any budget is exceeded, fail the build — we ship fast or surface it.
+        run: |
+          ext=$(stat -c%s out/extension.js)
+          web=$(stat -c%s out/webview.js)
+          css=$(stat -c%s out/webview.css)
+          fonts=$(du -sb out/fonts | cut -f1)
+          echo "extension.js: $ext bytes (budget 500000)"
+          echo "webview.js:   $web bytes"
+          echo "webview.css:  $css bytes"
+          echo "fonts:        $fonts bytes"
+          echo "webview total: $((web + css + fonts)) bytes (budget 800000)"
+          if [ "$ext" -gt 500000 ]; then
+            echo "::error::extension bundle exceeds 500KB"
+            exit 1
+          fi
+          if [ "$((web + css + fonts))" -gt 800000 ]; then
+            echo "::error::webview bundle (JS + CSS + fonts) exceeds 800KB"
+            exit 1
+          fi
