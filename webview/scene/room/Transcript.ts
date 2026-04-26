@@ -225,10 +225,10 @@ export class Transcript {
         btn.type = 'button';
         btn.className = 'turn-build';
         btn.textContent = label;
-        btn.title = 'Re-runs this plan in acceptEdits mode — Claude will now edit files';
+        btn.title = 'Re-runs this plan in EDIT mode — Claude will now edit files';
         const hint = document.createElement('div');
         hint.className = 'turn-build-hint';
-        hint.textContent = 're-runs as acceptEdits — Claude will edit files';
+        hint.textContent = 're-runs in EDIT mode — Claude will edit files';
         btn.addEventListener('click', () => {
           btn.disabled = true;
           btn.textContent = '…building';
