@@ -10,6 +10,9 @@ export interface RoomViewCallbacks {
   readonly onSend: (roomId: string, agentIds: string[], prompt: string) => void;
   readonly onBuild: (roomId: string, agentId: string, prompt: string) => void;
   readonly onStop: (roomId: string) => void;
+  /** Called when the user clicks "Add agent" in an empty custom room.
+   *  main.ts opens the room editor in agent-add mode. */
+  readonly onAddAgent?: (roomId: string) => void;
 }
 
 /**
@@ -102,9 +105,32 @@ export class RoomView {
     this.setBusy(busy);
     this.wireResizer();
 
+    // Empty-room CTA: custom rooms with zero agents can't be used yet.
+    if (room.agents.length === 0) {
+      this.showEmptyRoomCTA(room.id);
+    }
+
     this.el.classList.add('open');
     this.el.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.promptBar.focus());
+  }
+
+  private showEmptyRoomCTA(roomId: string): void {
+    const transcriptHost = this.el.querySelector<HTMLElement>('.room-transcript-host');
+    if (!transcriptHost) return;
+    const cta = document.createElement('div');
+    cta.className = 'empty-room-cta';
+    cta.innerHTML = `
+      <div class="empty-room-cta-card">
+        <div class="empty-room-cta-title">NO AGENTS YET</div>
+        <p class="empty-room-cta-body">This room has no inhabitants. Add at least one agent before you can speak with them.</p>
+        <button class="empty-room-cta-btn" type="button">+ ADD AGENT</button>
+      </div>
+    `;
+    cta.querySelector<HTMLButtonElement>('.empty-room-cta-btn')!.addEventListener('click', () => {
+      this.cb.onAddAgent?.(roomId);
+    });
+    transcriptHost.appendChild(cta);
   }
 
   /** Update the selected permission mode (called externally for BUILD feedback). */

@@ -82,6 +82,21 @@ const roomView = new RoomView(document.body, {
     roomView.setMode('acceptEdits');
     send({ type: 'build_last_turn', roomId, agentId, prompt });
   },
+  onAddAgent: (roomId) => {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    // Leave the room so the editor can open over the floor plan.
+    roomView.close();
+    send({ type: 'close_room' });
+    buildingFrame.classList.add('frame-hidden');
+    roomCreator.openEdit({
+      id: room.id,
+      name: room.name,
+      description: room.description,
+      accentColor: room.accentColor,
+      agents: [...room.agents],
+    });
+  },
   onStop: (roomId) => {
     send({ type: 'cancel_room_stream', roomId });
     // Lock down whatever turn is in-flight in the retained state so late
@@ -242,7 +257,8 @@ const councilSection = (() => {
   sec.hidden = true; // revealed once the council room arrives in init
   return sec;
 })();
-buildingFrame.appendChild(councilSection);
+// Insert above the SVG so The Council sits at the top of the floor plan.
+buildingFrame.insertBefore(councilSection, svg);
 
 function renderCouncilTile(room: RoomPublicInfo): void {
   councilSection.innerHTML = '';

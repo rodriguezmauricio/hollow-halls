@@ -77,12 +77,17 @@ ROOMS AND AGENTS:
 ${roster}
 
 Room expertise:
+- council: high-level strategic, philosophical/ethical, or architectural advice; "should I build X or Y", "is this the right approach", reframing the question itself, irreversibility analysis
 - design: typography, visual systems, brand identity, color, motion design
 - uiux: information architecture, user flows, wireframes, navigation, user research
 - code: architecture review, code quality, refactoring, systems design, testing, performance
 - front: React, JavaScript frameworks, state management, CSS, layout, responsive design, animations
 - market: product positioning, value propositions, product copy, UI microcopy, landing pages
 - sec: threat modelling, auth, security review, reverse engineering, binary analysis
+
+Routing priority:
+- If the visitor is asking "should I…", "is X the right approach", "CLI vs web app", "build now or later" — that is a strategic / advisory question. Send them to council, not hall.
+- Custom rooms (any roomId starting with "custom_") should only be picked when the visitor explicitly mentions that room's name or description.
 
 Respond with ONLY valid JSON on one line. Choose one:
 {"route":"room","roomId":"<id>","rationale":"<one sentence, speak to the visitor, present tense>"}

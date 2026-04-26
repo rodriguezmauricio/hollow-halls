@@ -1573,19 +1573,18 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
 .new-room-btn:hover { border-color: var(--bone-dim); color: var(--bone); }
 
 .custom-rooms-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
 .custom-room-tile {
   position: relative;
-  width: 180px;
-  height: 80px;
+  height: 96px;
   background: var(--ink-3);
   border: 1px solid var(--stone-lo);
   border-left: 3px solid var(--accent, var(--orchid));
-  padding: 12px 14px 10px;
+  padding: 14px 16px 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -2229,3 +2228,46 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40%           { transform: translateY(-4px); opacity: 0.95; }
 }
+
+/* ---- Empty room CTA ---- */
+.empty-room-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  height: 100%;
+}
+.empty-room-cta-card {
+  text-align: center;
+  border: 1px dashed var(--stone);
+  background: var(--ink-3);
+  padding: 28px 32px;
+  max-width: 380px;
+}
+.empty-room-cta-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--bone);
+  margin-bottom: 12px;
+}
+.empty-room-cta-body {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--bone-dim);
+  opacity: 0.75;
+  line-height: 1.55;
+  margin: 0 0 20px 0;
+}
+.empty-room-cta-btn {
+  background: none;
+  border: 1px solid var(--bone-dim);
+  color: var(--bone);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.empty-room-cta-btn:hover { background: var(--stone-lo); }
