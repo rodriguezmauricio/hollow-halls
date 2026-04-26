@@ -15,6 +15,7 @@ export interface RunRequest {
   readonly permissionMode?: PermissionMode;
   readonly skillsDir?: string;
   readonly maxTurns?: number;
+  readonly maxTokens?: number;
   readonly signal?: AbortSignal;
 }
 
@@ -37,10 +38,7 @@ export class AgentManager {
       const result = await this.provider.stream({
         system,
         userPrompt: req.userPrompt,
-        // Pithy by design: Maya's prompt explicitly asks for short, structural
-        // replies — capping max_tokens at 300 enforces that and halves cost
-        // relative to a default 600 cap.
-        maxTokens: 300,
+        maxTokens: req.maxTokens ?? 1000,
         onTextChunk: events.onChunk,
         onToolUse: events.onToolUse,
         signal: req.signal,

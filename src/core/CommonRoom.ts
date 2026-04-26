@@ -141,7 +141,7 @@ export class CommonRoom {
           result = await call.provider.stream({
             system,
             userPrompt,
-            maxTokens: 300,
+            maxTokens: call.maxTokens,
             signal,
             onTextChunk: (chunk) => {
               full += chunk;

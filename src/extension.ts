@@ -307,6 +307,7 @@ async function handleSendPrompt(
           permissionMode: effectiveMode,
           skillsDir: call.skillsDir,
           maxTurns: call.maxTurns,
+          maxTokens: call.maxTokens,
           signal: roomCtrl.signal,
         },
         {

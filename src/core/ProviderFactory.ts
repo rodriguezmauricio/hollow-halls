@@ -19,6 +19,7 @@ export interface AgentCallOptions {
    *  other providers, which silently ignore them. */
   readonly permissionMode?: PermissionMode;
   readonly maxTurns: number;
+  readonly maxTokens: number;
   readonly skillsDir?: string;
 }
 
@@ -97,7 +98,9 @@ export async function resolveAgentCall(
     ? await skills.skillDirFor(agent, settings)
     : undefined;
 
-  return { provider, permissionMode, maxTurns, skillsDir };
+  const maxTokens = maxTokensForMode(permissionMode);
+
+  return { provider, permissionMode, maxTurns, maxTokens, skillsDir };
 }
 
 /**
@@ -127,5 +130,13 @@ export async function providerForModerator(
       }
       return new AnthropicProvider({ apiKey, model: settings.providers.anthropic.moderatorModel });
     }
+  }
+}
+
+function maxTokensForMode(mode: PermissionMode | undefined): number {
+  switch (mode) {
+    case 'plan':          return 2000;
+    case 'acceptEdits':   return 800;
+    default:              return 1000;
   }
 }
