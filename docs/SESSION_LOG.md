@@ -111,8 +111,47 @@ Produced `UX_REVIEW.md` — a prioritised punch list.
 - Phase 2 order recommended in the document.
 
 ### Follow-ups
-- **Phase 2** starts with **B6** (tool-chip-error CSS, ~30 min), then
-  **F5** (Oracle error recovery), then **F8** (maxTokens fix).
+- ~~**B6** tool-chip-error CSS~~ ✓ `0d6d2d3`
+- ~~**F5** Oracle error recovery~~ ✓ `59b41fc`
+- ~~**F8** maxTokens fix~~ ✓ `b402b7c`
+- **Next**: F2 — mode pill authoritative + rename (plan → PLAN MODE, etc.)
+
+---
+
+## 2026-04-26 — Phase 2 (first three items)
+
+### Scope
+Three isolated bug fixes from the UX_REVIEW.md punch list.
+
+**B6 — tool-chip-error CSS restored** (`0d6d2d3`)  
+Phase -1 stripped `.tool-chip.tool-chip-error` as "decorative" but the red
+tint was informational (error chips were visually identical to success chips
+beyond the `[✕]` prefix symbol). Restored as `color: var(--sec)` only — no
+background tint, consistent with STYLE.md wireframe rules.
+
+**F5 — Oracle error recovery** (`59b41fc`)  
+When an API error fired during an Oracle consult, `showThinking()` had
+disabled the form and only `showDecision()` ever re-enabled it — so the
+Oracle was permanently stuck. Added `OracleView.showError(message)`:
+shows the message in `--sec` colour in the status bar and re-enables the
+form for retry. `main.ts` now routes `error` messages to `showError()`
+when the Oracle is visible, rather than the generic toast.
+
+**F8 — maxTokens 300 → mode-based defaults** (`b402b7c`)  
+`AgentManager` was calling every provider with `maxTokens: 300` (a
+leftover early-prototype cap). Added `maxTokens` to `AgentCallOptions`,
+computed in `ProviderFactory.resolveAgentCall()` via `maxTokensForMode()`:
+plan=2000, acceptEdits=800, other=1000. `CommonRoom.ts` had the same
+hardcoded 300 — fixed there too. Claude Code CLI is unaffected (it ignores
+`maxTokens`).
+
+### Outcome
+- Build clean: typecheck + build passed.
+- All three fixes are isolated; no cross-file side effects.
+
+### Follow-ups
+- **F2**: mode pill authoritative + rename (needs protocol change + webview)
+- Continue working down UX_REVIEW.md list.
 
 ### Working principle adopted this session
 **Commit + document every change.** Every session ends with a
