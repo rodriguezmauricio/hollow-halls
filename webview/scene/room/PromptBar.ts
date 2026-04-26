@@ -2,6 +2,7 @@ import type { AgentPublicInfo, PickerMode, ThinkingLevel } from '@/messaging/pro
 
 export interface PromptBarCallbacks {
   readonly onSend: (agentIds: string[], prompt: string) => void;
+  readonly onStop: () => void;
   readonly initialMode?: PickerMode;
 }
 
@@ -19,6 +20,8 @@ export class PromptBar {
   private picked = new Set<string>();
   private busy = false;
   private agents: AgentPublicInfo[] = [];
+  private chipsByAgent = new Map<string, HTMLButtonElement>();
+  private activeAgentId: string | null = null;
   private pickerMode: PickerMode;
   private pickerThinking: ThinkingLevel = 'off';
 
@@ -65,7 +68,13 @@ export class PromptBar {
 
     this.buildModeButtons();
 
-    this.sendBtn.addEventListener('click', () => this.submit());
+    this.sendBtn.addEventListener('click', () => {
+      if (this.busy) {
+        this.cb.onStop();
+      } else {
+        this.submit();
+      }
+    });
     this.textarea.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -120,6 +129,7 @@ export class PromptBar {
     this.chipRow.innerHTML = '';
     this.chipRow.style.setProperty('--accent', accent);
     this.picked = new Set();
+    this.chipsByAgent.clear();
     agents.forEach((a) => {
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -132,6 +142,7 @@ export class PromptBar {
       (chip.querySelector('.chip-name') as HTMLElement).textContent = a.name;
       (chip.querySelector('.chip-tag') as HTMLElement).textContent = a.tag;
       chip.addEventListener('click', () => {
+        if (this.busy) return;
         if (this.picked.has(a.id)) {
           this.picked.delete(a.id);
           chip.classList.remove('picked');
@@ -142,20 +153,50 @@ export class PromptBar {
         this.updateState();
       });
       this.chipRow.appendChild(chip);
+      this.chipsByAgent.set(a.id, chip);
       this.picked.add(a.id);
     });
     this.updateState();
   }
 
+  /** Highlight the currently-speaking agent's chip and update the status
+   *  line to "{name} is working…". Call with null when no agent is active
+   *  (between hops or when idle). */
+  setActiveAgent(agentId: string | null): void {
+    if (this.activeAgentId === agentId) return;
+    if (this.activeAgentId) {
+      this.chipsByAgent.get(this.activeAgentId)?.classList.remove('active');
+    }
+    this.activeAgentId = agentId;
+    if (agentId) {
+      this.chipsByAgent.get(agentId)?.classList.add('active');
+    }
+    if (this.busy) this.refreshBusyStatus();
+  }
+
+  private refreshBusyStatus(): void {
+    if (!this.busy) return;
+    if (this.activeAgentId) {
+      const a = this.agents.find((x) => x.id === this.activeAgentId);
+      const name = a?.name ?? this.activeAgentId;
+      this.statusEl.textContent = `${name.toLowerCase()} is working…`;
+    } else {
+      this.statusEl.textContent = 'agents are deliberating…';
+    }
+  }
+
   setBusy(busy: boolean): void {
     this.busy = busy;
     if (busy) {
-      this.sendBtn.textContent = '…COMMUNING';
-      this.sendBtn.disabled = true;
-      this.statusEl.textContent = 'agents are deliberating';
+      this.sendBtn.textContent = '◼ STOP';
+      this.sendBtn.disabled = false;
+      this.sendBtn.classList.add('send-stop');
+      this.refreshBusyStatus();
     } else {
       this.sendBtn.textContent = 'COMMUNE';
+      this.sendBtn.classList.remove('send-stop');
       this.statusEl.textContent = '';
+      this.setActiveAgent(null);
       this.updateState();
     }
   }

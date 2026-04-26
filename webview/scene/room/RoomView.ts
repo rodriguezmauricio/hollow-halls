@@ -93,6 +93,7 @@ export class RoomView {
       ? mode as PickerMode : 'plan';
     this.promptBar = new PromptBar({
       onSend: (agentIds, prompt) => this.cb.onSend(room.id, agentIds, prompt),
+      onStop: () => { if (this.room) this.cb.onStop(this.room.id); },
       initialMode,
     });
     (this.el.querySelector('.room-prompt-host') as HTMLElement).appendChild(this.promptBar.el);
@@ -162,6 +163,7 @@ export class RoomView {
     this.pointAt(agentId);
     this.awaitingFirstChunk.add(agentId);
     this.showBubbleAtAgent(agentId);
+    this.promptBar?.setActiveAgent(agentId);
   }
 
   appendAgentChunk(agentId: string, chunk: string): void {

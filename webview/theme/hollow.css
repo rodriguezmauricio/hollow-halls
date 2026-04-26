@@ -1277,6 +1277,40 @@ button.gh-summary-path-btn:hover { background: rgba(242,234,215,0.12); color: va
 /* Bypass warning on send button (I2) */
 .send.send-bypass { border-color: var(--sec) !important; color: var(--sec) !important; }
 
+/* While a chain/stream is in flight, SEND becomes a clickable STOP button. */
+.send.send-stop {
+  background: var(--sec) !important;
+  color: var(--ink) !important;
+  animation: send-stop-pulse 1.6s ease-in-out infinite;
+}
+.send.send-stop:hover { filter: brightness(1.15); }
+@keyframes send-stop-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214,108,108,0.45); }
+  50%      { box-shadow: 0 0 0 6px rgba(214,108,108,0); }
+}
+
+/* Active speaker highlight: the currently-streaming agent's chip gets a
+ * pulsing soul-color ring + pulsing dot so the user can see at a glance
+ * who is "working" right now (chain handoffs move the highlight). */
+.prompt-chip.active {
+  border-color: var(--accent);
+  background: rgba(242,234,215,0.08);
+  color: var(--bone);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(242,234,215,0.18);
+  animation: prompt-chip-pulse 1.4s ease-in-out infinite;
+}
+.prompt-chip.active .chip-dot {
+  animation: prompt-chip-dot-pulse 1s ease-in-out infinite;
+}
+@keyframes prompt-chip-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent), 0 0 8px  rgba(242,234,215,0.12); }
+  50%      { box-shadow: 0 0 0 1px var(--accent), 0 0 18px rgba(242,234,215,0.28); }
+}
+@keyframes prompt-chip-dot-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.8; }
+  50%      { transform: scale(1.35); opacity: 1;   }
+}
+
 /* First-run overlay (I4) */
 .first-run-overlay {
   position: fixed; inset: 0; z-index: 50;
