@@ -1,4 +1,5 @@
 import type { AgentPublicInfo, PickerMode, ThinkingLevel } from '@/messaging/protocol';
+import { showHelp } from '../Help';
 
 export interface PromptBarCallbacks {
   readonly onSend: (agentIds: string[], prompt: string) => void;
@@ -34,6 +35,7 @@ export class PromptBar {
       <div class="prompt-chip-row"></div>
       <div class="prompt-controls">
         <div class="pmode-group"></div>
+        <button class="help-btn pmode-help-btn" type="button" aria-label="how permission modes work">?</button>
         <div class="prompt-ctrl-sep" aria-hidden="true"></div>
         <div class="pthink-group">
           <div class="pthink-track">
@@ -67,6 +69,13 @@ export class PromptBar {
     });
 
     this.buildModeButtons();
+
+    const modeHelpBtn = this.el.querySelector<HTMLButtonElement>('.pmode-help-btn')!;
+    modeHelpBtn.addEventListener('click', () => showHelp(modeHelpBtn,
+      'PLAN — writes a plan only, no file edits. Use BUILD on the plan to execute it.\n' +
+      'EDIT — edits files, asks your permission before each change.\n' +
+      'BYPASS — full autonomy: edits files and runs commands without asking.',
+    ));
 
     this.sendBtn.addEventListener('click', () => {
       if (this.busy) {

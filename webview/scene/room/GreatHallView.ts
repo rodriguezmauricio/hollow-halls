@@ -2,6 +2,7 @@ import type { AgentPublicInfo, AttendingAgent, PickerMode, ThinkingLevel } from 
 import { agentSprite } from '../Agent';
 import { buildGreatHallScene } from './scenes';
 import { Transcript, type Turn, type TurnAgentCost, type TurnToolUse } from './Transcript';
+import { showHelp } from '../Help';
 
 export interface GreatHallRosterGroup {
   readonly roomId: string;
@@ -188,17 +189,18 @@ export class GreatHallView {
     const modeRow = this.el.querySelector<HTMLElement>('.pmode-group');
     if (!modeRow) return;
 
-    const modeDefs: { mode: PickerMode; label: string }[] = [
-      { mode: 'plan', label: 'PLAN' },
-      { mode: 'acceptEdits', label: 'EDIT' },
-      { mode: 'bypassPermissions', label: 'BYPASS' },
+    const modeDefs: { mode: PickerMode; label: string; hint: string }[] = [
+      { mode: 'plan',              label: 'PLAN',   hint: 'writes a plan — no file changes' },
+      { mode: 'acceptEdits',       label: 'EDIT',   hint: 'edits files — asks before each change' },
+      { mode: 'bypassPermissions', label: 'BYPASS', hint: 'full autonomy — no confirmations' },
     ];
     modeRow.innerHTML = '';
-    for (const { mode, label } of modeDefs) {
+    for (const { mode, label, hint } of modeDefs) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pmode-btn' + (this.pickerMode === mode ? ' selected' : '');
       btn.textContent = label;
+      btn.title = hint;
       btn.addEventListener('click', () => {
         this.pickerMode = mode;
         modeRow.querySelectorAll('.pmode-btn').forEach((b) => b.classList.toggle('selected', b === btn));
@@ -257,6 +259,7 @@ export class GreatHallView {
           <h2>THE GREAT HALL</h2>
           <p>choose who attends. the speaker will call each in turn.</p>
         </div>
+        <button class="help-btn gh-help-btn" type="button" aria-label="how the Great Hall works">?</button>
         <div class="gh-activity"><span class="gh-session-cost"></span></div>
       </header>
       <div class="gh-picker">
@@ -289,6 +292,16 @@ export class GreatHallView {
     this.wireLeaveButton();
     this.buildGHModeButtons();
     this.wireThinkingSlider();
+
+    const ghHelpBtn = this.el.querySelector<HTMLButtonElement>('.gh-help-btn');
+    if (ghHelpBtn) {
+      ghHelpBtn.addEventListener('click', () => showHelp(ghHelpBtn,
+        'The Great Hall gathers agents from multiple rooms to collaborate.\n' +
+        'A hidden moderator picks who speaks next based on the task.\n' +
+        'Agents keep speaking until the task is done or the turn cap is reached.\n' +
+        'You can LEAVE mid-meeting — it keeps running in the background.',
+      ));
+    }
 
     const rosterEl = this.el.querySelector('.gh-roster') as HTMLElement;
     rosterEl.appendChild(this.renderRoster());

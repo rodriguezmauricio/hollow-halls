@@ -1460,3 +1460,58 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
 }
 .turn-interrupted::before { margin-right: 8px; }
 .turn-interrupted::after { margin-left: 8px; }
+
+/* ===== Help buttons + tooltips ===== */
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--bone-ghost);
+  background: none;
+  color: var(--bone-ghost);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+  vertical-align: middle;
+}
+.help-btn:hover,
+.help-btn:focus-visible {
+  opacity: 1;
+  border-color: var(--bone-dim);
+  color: var(--bone-dim);
+  outline: none;
+}
+
+.help-tooltip {
+  position: fixed;
+  z-index: 9000;
+  background: var(--ink-2);
+  border: 1px solid var(--stone);
+  color: var(--bone-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  line-height: 1.65;
+  padding: 10px 14px;
+  max-width: 280px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.help-tooltip span { display: block; }
+
+/* Oracle header: keep the ? from breaking flex layout */
+.oracle-head .help-btn { margin-left: 8px; }
+
+/* Great Hall header: align right */
+.gh-head .help-btn { margin-left: auto; }
+
+/* PromptBar: tuck the ? snugly after the mode buttons */
+.pmode-help-btn { margin-left: 4px; }

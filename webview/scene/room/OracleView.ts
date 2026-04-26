@@ -1,4 +1,5 @@
 import type { OracleDecision } from '@/messaging/protocol';
+import { showHelp } from '../Help';
 
 export interface OracleViewCallbacks {
   readonly onLeave: () => void;
@@ -155,6 +156,7 @@ export class OracleView {
       <header class="oracle-head">
         <button class="leave" type="button" aria-label="leave oracle">&larr; LEAVE <span class="leave-esc">esc</span></button>
         <div class="oracle-title">THE ORACLE <span class="oracle-tag">— the entrance</span></div>
+        <button class="help-btn oracle-help-btn" type="button" aria-label="how the Oracle works">?</button>
         <div class="oracle-status" aria-live="polite"></div>
       </header>
       <main class="oracle-body">
@@ -204,6 +206,14 @@ export class OracleView {
 
     this.el.querySelector<HTMLButtonElement>('.leave')!
       .addEventListener('click', () => this.cb.onLeave());
+
+    const helpBtn = this.el.querySelector<HTMLButtonElement>('.oracle-help-btn')!;
+    helpBtn.addEventListener('click', () => showHelp(helpBtn,
+      'The Oracle listens to your goal and routes you to the right room.\n' +
+      'Describe what you need — it picks the best discipline and sends you there.\n' +
+      'For complex tasks it can convene multiple agents in the Great Hall.\n' +
+      'Uses a fast model; no file edits. Just routing.',
+    ));
 
     const input = this.el.querySelector<HTMLTextAreaElement>('.oracle-input')!;
     const submit = this.el.querySelector<HTMLButtonElement>('.oracle-submit')!;
