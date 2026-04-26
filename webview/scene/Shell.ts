@@ -9,13 +9,12 @@ export function mountShell(root: HTMLElement): void {
           <div class="mark" aria-hidden="true"></div>
           <div>
             <h1>THE HOLLOW HALLS</h1>
-            <div class="sub">a continuous office · v0.2</div>
+            <div class="sub">a continuous office</div>
           </div>
         </div>
         <div class="meta">
-          <div class="stat"><b id="stat-agents">14</b> agents vigilant</div>
+          <div class="stat"><b id="stat-agents">—</b> agents vigilant</div>
           <div class="stat"><b id="stat-meetings">0</b> rites in progress</div>
-          <button class="theme" type="button">▢ theme: hollow</button>
         </div>
       </header>
 
@@ -23,6 +22,7 @@ export function mountShell(root: HTMLElement): void {
         enter through the oracle
         <span class="pin">·</span> rooms attend their craft
         <span class="pin">·</span> the great hall convenes them all
+        <span class="pin">·</span> the council advises
       </div>
 
       <div class="building-frame">${buildingSvg()}</div>

@@ -420,6 +420,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       showProviderBadge(buildingFrame, msg.provider, msg.model);
       cachedSettings = msg.settings;
       applySingletonState(msg.settings.disabledSingletons);
+      updateAgentStat();
       // Render tiles for custom rooms (not in the static SVG). Council is now
       // a real SVG tile in the top row, so it's already covered by markLiveRooms.
       msg.rooms
@@ -658,6 +659,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       if (roomView.currentRoomId() === msg.roomId) {
         roomView.setBusy(msg.busy);
       }
+      updateMeetingStat();
       return;
     }
 
@@ -669,6 +671,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       greatHall.meetingStarted(msg.meetingId, msg.attending, msg.task);
       greatHall.setBusy(true);
       greatHall.setMode(currentModeByRoom.get('common') ?? 'plan');
+      updateMeetingStat();
       return;
 
     case 'moderator_pick':
@@ -682,6 +685,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
         costUSD: msg.costUSD,
         transcriptPath: msg.transcriptPath,
       });
+      updateMeetingStat();
       return;
 
     case 'oracle_thinking':
@@ -695,6 +699,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'room_created': {
       rooms.set(msg.room.id, msg.room);
       addCustomRoomTile(msg.room);
+      updateAgentStat();
       if (creatorAwaitingNewRoomId && roomCreator.isVisible()) {
         creatorAwaitingNewRoomId = false;
         // Flip the open form into edit mode for the new room so the user
@@ -717,6 +722,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       addCustomRoomTile(msg.room); // removes old tile, adds updated
       if (roomCreator.isVisible()) roomCreator.updateAgents(msg.room.agents as AgentPublicInfo[]);
       buildingFrame.classList.remove('frame-hidden');
+      updateAgentStat();
       return;
     }
 
@@ -726,6 +732,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       buildingFrame.classList.remove('frame-hidden');
       // If user was in this room, leave it.
       if (roomView.currentRoomId() === msg.roomId) leaveRoom();
+      updateAgentStat();
       return;
     }
 
@@ -761,6 +768,23 @@ function markLiveRooms(svg: SVGSVGElement, live: Map<string, RoomPublicInfo>): v
     const id = g.dataset.room;
     if (id && live.has(id)) g.classList.add('room-live');
   });
+}
+
+/** Header stat — total agents across all rooms (built-in + custom). */
+function updateAgentStat(): void {
+  let total = 0;
+  for (const r of rooms.values()) total += r.agents.length;
+  const el = document.getElementById('stat-agents');
+  if (el) el.textContent = String(total);
+}
+
+/** Header stat — count of rooms currently streaming + the great hall if active. */
+function updateMeetingStat(): void {
+  let active = 0;
+  for (const st of roomStates.values()) if (st.busy) active++;
+  if (greatHall.hasMeeting()) active++;
+  const el = document.getElementById('stat-meetings');
+  if (el) el.textContent = String(active);
 }
 
 function showErrorToast(message: string): void {
