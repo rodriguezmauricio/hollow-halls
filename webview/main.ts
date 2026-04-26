@@ -57,10 +57,11 @@ function stateFor(id: string): RoomState {
 
 const roomView = new RoomView(document.body, {
   onLeave: () => {
-    if (roomView.currentRoomId()) {
+    const id = roomView.currentRoomId();
+    if (id) {
       const snap = roomView.snapshotTranscript();
-      const st = stateFor(roomView.currentRoomId()!);
-      st.turns = snap;
+      stateFor(id).turns = snap;
+      persistRoomState(id);
     }
     roomView.close();
     buildingFrame.classList.remove('frame-hidden');
@@ -179,9 +180,20 @@ function leaveRoom(): void {
   if (!roomView.currentRoomId()) return;
   const id = roomView.currentRoomId()!;
   stateFor(id).turns = roomView.snapshotTranscript();
+  persistRoomState(id);
   roomView.close();
   buildingFrame.classList.remove('frame-hidden');
   send({ type: 'close_room' });
+}
+
+/** Cap and persist a room's transcript so it survives VS Code restarts. */
+const MAX_PERSISTED_TURNS = 60;
+function persistRoomState(roomId: string): void {
+  const st = stateFor(roomId);
+  const turns = st.turns.length > MAX_PERSISTED_TURNS
+    ? st.turns.slice(st.turns.length - MAX_PERSISTED_TURNS)
+    : st.turns;
+  send({ type: 'save_room_state', roomId, stateJson: JSON.stringify(turns) });
 }
 
 // Wire room clicks on the building view.
@@ -226,6 +238,15 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'room_opened': {
       const st = stateFor(msg.room.id);
       rooms.set(msg.room.id, msg.room);
+      // Restore persisted history if in-memory is empty (fresh start / restart).
+      if (msg.savedStateJson && st.turns.length === 0) {
+        try {
+          const restored = JSON.parse(msg.savedStateJson) as Turn[];
+          if (Array.isArray(restored)) st.turns = restored;
+        } catch {
+          // stale / malformed save — ignore
+        }
+      }
       const mode = currentModeByRoom.get(msg.room.id) ?? 'plan';
       roomView.open(msg.room, st.turns, st.busy, mode);
       roomView.setSessionTotal(sessionTotalUSD);
@@ -317,6 +338,8 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
             roomView.showBuildOnLastAgentTurn(msg.agentId, pending.prompt);
           }
         }
+        // Persist transcript so history survives VS Code restarts.
+        persistRoomState(msg.roomId);
       }
 
       // After an acceptEdits build finishes, the room reverts to plan for the

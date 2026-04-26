@@ -89,7 +89,15 @@ export type WebviewMsg =
   | { readonly type: 'cancel_meeting'; readonly meetingId: string }
   | { readonly type: 'cancel_room_stream'; readonly roomId: string }
   | { readonly type: 'oracle_consult'; readonly prompt: string }
-  | { readonly type: 'open_file'; readonly path: string };
+  | { readonly type: 'open_file'; readonly path: string }
+  | {
+      /** Persist this room's Turn[] so the extension can restore it on next open.
+       *  Sent after each agent_message_complete and on close_room. */
+      readonly type: 'save_room_state';
+      readonly roomId: string;
+      /** JSON-serialized Turn[]. Extension stores opaquely; never inspects. */
+      readonly stateJson: string;
+    };
 
 export type ExtensionMsg =
   | {
@@ -102,6 +110,8 @@ export type ExtensionMsg =
   | {
       readonly type: 'room_opened';
       readonly room: RoomPublicInfo;
+      /** Previously saved Turn[] JSON, if any. Absent on first open. */
+      readonly savedStateJson?: string;
     }
   | {
       readonly type: 'user_prompt';

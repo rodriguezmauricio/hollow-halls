@@ -195,11 +195,17 @@ function wireMessages(
         case 'open_room': {
           const room = ROOM_BY_ID[raw.roomId];
           if (!room) return;
-          send(p, { type: 'room_opened', room: toPublic(room) });
+          const savedStateJson = context.workspaceState.get<string>(`hollowRoom:${raw.roomId}`);
+          send(p, { type: 'room_opened', room: toPublic(room), savedStateJson });
           return;
         }
 
         case 'close_room':
+          return;
+
+        case 'save_room_state':
+          // Best-effort — never block on this.
+          void context.workspaceState.update(`hollowRoom:${raw.roomId}`, raw.stateJson);
           return;
 
         case 'send_prompt':
