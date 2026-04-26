@@ -18,6 +18,7 @@ export interface RunRequest {
   readonly maxTokens?: number;
   readonly thinking?: 'off' | 'low' | 'medium' | 'high';
   readonly signal?: AbortSignal;
+  readonly cwd?: string;
 }
 
 export interface StreamEvents {
@@ -47,6 +48,7 @@ export class AgentManager {
         permissionMode: req.permissionMode,
         skillsDir: req.skillsDir,
         maxTurns: req.maxTurns,
+        cwd: req.cwd,
       });
       events.onComplete(result);
     } catch (err) {

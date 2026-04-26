@@ -49,6 +49,11 @@ export interface StreamArgs {
 
   /** Extended thinking level. Anthropic API only; other providers ignore it. */
   readonly thinking?: 'off' | 'low' | 'medium' | 'high';
+
+  /** Working directory for the Claude Code subprocess so file-reading tools
+   *  resolve against the user's project, not VS Code's install dir. Other
+   *  providers ignore it. */
+  readonly cwd?: string;
 }
 
 export interface StreamResult {

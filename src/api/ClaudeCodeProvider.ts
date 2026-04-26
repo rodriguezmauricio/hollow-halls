@@ -71,6 +71,7 @@ export class ClaudeCodeProvider implements LlmProvider {
 
       child = spawn(binary, cliArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: args.cwd,
         shell: process.platform === 'win32',
         // shell:true on Windows is required because `claude` is a .cmd shim
         // post-CVE-2024-27980. All our args are safe (flags + absolute path +

@@ -32,6 +32,14 @@ const meetingAborts = new Map<string, AbortController>();
 /** Per-room abort controllers so the webview can stop an individual agent stream. */
 const roomAborts = new Map<string, AbortController>();
 
+/** First open workspace folder, or undefined when running on a virtual /
+ *  empty workspace. Threaded into every Claude Code subprocess so file-
+ *  reading tools resolve against the user's project, not VS Code's
+ *  install dir. */
+function workspaceCwd(): string | undefined {
+  return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
 const ROOMS: readonly Room[] = [
   designRoom,
   uiuxRoom,
@@ -389,6 +397,7 @@ async function runFanoutForAgent(
       maxTurns: call.maxTurns,
       maxTokens: call.maxTokens,
       thinking: msg.thinking,
+      cwd: workspaceCwd(),
       signal,
     },
     {
@@ -438,6 +447,7 @@ async function runChainForRoom(
       meetingId,
       permissionMode: msg.permissionMode,
       thinking: msg.thinking,
+      cwd: workspaceCwd(),
       signal,
       resolveCall: (a) => resolveAgentCall(context, a, roomId, settings, skills),
     },
@@ -551,7 +561,7 @@ async function handleConvene(
   const common = new CommonRoom(context, settings, skills);
   try {
     await common.convene(
-      { meetingId, task: msg.task, attending, permissionMode: msg.permissionMode, thinking: msg.thinking },
+      { meetingId, task: msg.task, attending, permissionMode: msg.permissionMode, thinking: msg.thinking, cwd: workspaceCwd() },
       {
         onModeratorPick: (agentId, rationale) =>
           send(p, { type: 'moderator_pick', meetingId, agentId, rationale }),

@@ -49,6 +49,7 @@ export interface ChainRequest {
   readonly thinking?: 'off' | 'low' | 'medium' | 'high';
   readonly maxHops?: number;
   readonly signal?: AbortSignal;
+  readonly cwd?: string;
   /** Resolves an agent's call-time config per hop (different agents may use
    *  different providers/models). This is `resolveAgentCall` from ProviderFactory. */
   readonly resolveCall: (agent: AgentDef) => Promise<ResolvedAgentCall>;
@@ -136,6 +137,7 @@ export async function runChain(
         permissionMode: req.permissionMode ?? call.permissionMode ?? 'default',
         skillsDir: call.skillsDir,
         maxTurns: call.maxTurns,
+        cwd: req.cwd,
         signal: req.signal,
         onTextChunk: (chunk) => {
           totalText += chunk;

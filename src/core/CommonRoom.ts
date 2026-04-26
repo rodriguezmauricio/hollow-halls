@@ -39,6 +39,7 @@ export interface ConveneRequest {
   readonly maxTurns?: number;
   readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
   readonly thinking?: 'off' | 'low' | 'medium' | 'high';
+  readonly cwd?: string;
 }
 
 export interface ConveneEvents {
@@ -156,6 +157,7 @@ export class CommonRoom {
             permissionMode: req.permissionMode ?? call.permissionMode,
             skillsDir: call.skillsDir,
             maxTurns: call.maxTurns,
+            cwd: req.cwd,
           });
         } catch (err) {
           if (signal.aborted) {
