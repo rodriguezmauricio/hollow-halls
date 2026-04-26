@@ -159,3 +159,53 @@ conventional-commits commit and a `docs/SESSION_LOG.md` entry. No
 undocumented features. No "I'll commit it later" piles. (Stored in
 auto-memory at
 `~/.claude/projects/c--Users-conta-Desktop-PixelOffice/memory/feedback_commit_and_document.md`.)
+
+---
+
+## 2026-04-26 — Phase 2: F2 — mode+thinking picker (commit `bfbdd57`)
+
+### Scope
+Full mode and thinking-level picker accessible from every room and the
+Great Hall. Mirrors the Claude Code permission-mode UI.
+
+**Permission modes exposed:**
+- PLAN — explores first, BUILD to execute
+- EDIT — edits files directly without approval
+- BYPASS — runs commands without approval prompts
+
+**Thinking levels exposed:**
+- OFF / LOW (2k budget tokens) / MED (8k) / HIGH (16k) — Anthropic API only
+
+### Changes
+- `src/messaging/protocol.ts` — added `ThinkingLevel` type; added
+  `thinking?` to `send_prompt` and `permissionMode?` + `thinking?` to
+  `convene`.
+- `src/api/provider.ts` — added `thinking?` to `StreamArgs`.
+- `src/api/AnthropicProvider.ts` — maps thinking levels to
+  `extended-thinking` budget tokens; bumps `max_tokens` above budget
+  automatically.
+- `src/core/AgentManager.ts` — threads `thinking` through `RunRequest`
+  and the provider `stream()` call.
+- `src/core/CommonRoom.ts` — threads `thinking` + `permissionMode`
+  through `ConveneRequest`.
+- `src/extension.ts` — forwards both fields from webview messages.
+- `webview/scene/room/RoomView.ts` — clickable pill → dropdown with 3
+  mode buttons + 4 thinking-level buttons; pill text updates to reflect
+  current selection (e.g. "PLAN · LOW").
+- `webview/scene/room/GreatHallView.ts` — same picker in the meeting
+  header.
+- `webview/main.ts` — `onSend`/`onConvene` read selected mode and
+  thinking and forward in the message; `currentModeByRoom` expanded to
+  include `'bypassPermissions'`.
+- `webview/theme/hollow.css` — picker overlay, mode/thinking button
+  styles.
+
+### Outcome
+- Typecheck: clean. Build: clean (extension 90.9KB, webview 129.6KB).
+- User can now pick permission mode and thinking level at any time from
+  any view without leaving the current context.
+
+### Follow-ups
+- **Next**: F4 — Oracle redirect timer (3-second countdown with cancel)
+- Then: B5 in-product explanations, B3 live model picker, B4 singleton
+  deactivation, B1+B2 custom rooms + agents.
