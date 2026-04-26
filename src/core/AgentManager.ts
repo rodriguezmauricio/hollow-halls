@@ -1,4 +1,9 @@
-import type { LlmProvider, StreamResult } from '@/api/provider';
+import type {
+  LlmProvider,
+  PermissionMode,
+  StreamResult,
+  ToolUseEvent,
+} from '@/api/provider';
 import type { Room, AgentDef } from '@/rooms/types';
 
 export interface RunRequest {
@@ -6,6 +11,11 @@ export interface RunRequest {
   readonly agent: AgentDef;
   readonly userPrompt: string;
   readonly meetingId: string;
+  /** Claude-Code-only extras; silently ignored by other providers. */
+  readonly permissionMode?: PermissionMode;
+  readonly skillsDir?: string;
+  readonly maxTurns?: number;
+  readonly signal?: AbortSignal;
 }
 
 export interface StreamEvents {
@@ -13,6 +23,7 @@ export interface StreamEvents {
   readonly onChunk: (chunk: string) => void;
   readonly onComplete: (result: StreamResult) => void;
   readonly onError: (err: Error) => void;
+  readonly onToolUse?: (event: ToolUseEvent) => void;
 }
 
 export class AgentManager {
@@ -31,6 +42,11 @@ export class AgentManager {
         // relative to a default 600 cap.
         maxTokens: 300,
         onTextChunk: events.onChunk,
+        onToolUse: events.onToolUse,
+        signal: req.signal,
+        permissionMode: req.permissionMode,
+        skillsDir: req.skillsDir,
+        maxTurns: req.maxTurns,
       });
       events.onComplete(result);
     } catch (err) {

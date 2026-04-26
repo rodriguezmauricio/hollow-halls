@@ -1,6 +1,6 @@
 import { build, context } from 'esbuild';
-import { resolve, dirname } from 'node:path';
-import { copyFile, mkdir } from 'node:fs/promises';
+import { resolve, dirname, join } from 'node:path';
+import { copyFile, mkdir, readdir } from 'node:fs/promises';
 
 const watch = process.argv.includes('--watch');
 const production = process.env.NODE_ENV === 'production';
@@ -54,6 +54,48 @@ async function copyAssets() {
       await copyFile(src, dst);
     }),
   );
+  await copySkills();
+}
+
+/**
+ * Copies each agent's bundled skill from
+ *   assets/skills/<id>/...files
+ * to
+ *   out/skills/<id>/.claude/skills/<id>/...files
+ *
+ * The outer `out/skills/<id>` is the directory the extension passes to
+ * `claude --add-dir`, and the inner `.claude/skills/<id>/` is where Claude
+ * Code auto-discovers the skill. This scoping means one agent's call only
+ * sees its own skill, never its neighbors'.
+ */
+async function copySkills() {
+  let entries;
+  try {
+    entries = await readdir('assets/skills', { withFileTypes: true });
+  } catch {
+    return; // no skills authored yet — not an error
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const skillId = entry.name;
+    const srcDir = join('assets/skills', skillId);
+    const dstDir = join('out/skills', skillId, '.claude', 'skills', skillId);
+    await copyTree(srcDir, dstDir);
+  }
+}
+
+async function copyTree(srcDir, dstDir) {
+  await mkdir(dstDir, { recursive: true });
+  const entries = await readdir(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const s = join(srcDir, entry.name);
+    const d = join(dstDir, entry.name);
+    if (entry.isDirectory()) {
+      await copyTree(s, d);
+    } else if (entry.isFile()) {
+      await copyFile(s, d);
+    }
+  }
 }
 
 async function run() {

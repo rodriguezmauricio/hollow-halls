@@ -33,9 +33,13 @@ These are non-negotiable. Push back on the user if you're asked to violate them.
 
 6. **LLM providers are pluggable; never hardcode model names at call sites.** Three providers ship: Claude Code CLI (uses the user's Max subscription via keychain OAuth — no API key needed), Ollama (free local models), and the Anthropic API (pay-per-token). All three implement `LlmProvider` in `src/api/provider.ts`. When the Anthropic or Claude Code providers are active, default to Sonnet for room agents and Haiku for Oracle/moderator calls. When Ollama is active, the user picks the model via `.hollow/settings.json`. All defaults live in `src/core/Settings.ts` — no model strings in call sites.
 
+   **Skills and permission modes (Claude Code only).** Each bundled agent has a SKILL.md at `assets/skills/<agent-id>/SKILL.md` — that's the agent's *procedure* layered on top of the *personality* prompt. The build script copies each skill into `out/skills/<id>/.claude/skills/<id>/SKILL.md`, and the extension hands only that directory to `claude --add-dir` so one agent's call never sees another agent's skill. User-authored skills live in `<workspace>/.claude/skills/` (scaffold with the `Hollow Halls: Create Skill` command) and are overlaid globally by the CLI — their visibility across agents is a known tradeoff for this milestone.
+
+   Every room defaults to `--permission-mode plan` (configurable via `settings.defaultPermissionMode` / `roomOverrides` / `agentOverrides`). Plan mode streams a written plan into the transcript and auto-saves it to `.hollow/plans/`. The BUILD button on a plan-mode turn re-runs the same prompt in `acceptEdits` so Claude can execute with tool use (reads, edits, bash). Tool calls render in the transcript as inline `[tool] toolName · input` blocks — deliberately lo-fi; structured tool-use UI (diff accept/reject, plan boxes) is M6.
+
 7. **Stream everything user-facing.** Any agent reply that appears in a speech bubble must be streamed character-by-character. Non-streamed responses feel dead and undermine the whole metaphor.
 
-8. **Cost is a first-class concern.** Every API call goes through `CostTracker`. The status bar always shows session cost. Default warning at $1.00/session. Never add a new API call without wiring it into the tracker.
+8. **Cost is a first-class concern.** Every API call goes through `CostTracker`. The status bar always shows session cost. Default soft warning at $0.50/session (tool-use in acceptEdits can burn Max's rate budget fast — the warning is your chance to cap it). Never add a new API call without wiring it into the tracker.
 
 9. **The aesthetic is a feature.** When in doubt about visual choices, match the mockup. When deviating, push toward *more* atmospheric, not less. No emojis in the UI. No generic Material/Tailwind shadcn aesthetic — this is Cinzel + IBM Plex Mono + Hollow Knight, and that's intentional.
 

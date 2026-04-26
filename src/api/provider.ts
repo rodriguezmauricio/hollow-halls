@@ -6,12 +6,46 @@
 
 export type ProviderId = 'anthropic' | 'ollama' | 'claude-code';
 
+export type PermissionMode =
+  | 'plan'
+  | 'acceptEdits'
+  | 'bypassPermissions'
+  | 'default'
+  | 'dontAsk';
+
+export interface ToolUseEvent {
+  readonly phase: 'start' | 'result';
+  readonly toolName: string;
+  /** Parsed input payload for phase=start. Provider-shaped; caller formats it. */
+  readonly input?: unknown;
+  /** Stringified output for phase=result. */
+  readonly output?: string;
+  readonly isError?: boolean;
+  /** Lets the caller correlate start/result pairs across interleaved tool calls. */
+  readonly toolUseId?: string;
+}
+
 export interface StreamArgs {
   readonly system: string;
   readonly userPrompt: string;
   readonly maxTokens: number;
   readonly signal?: AbortSignal;
   readonly onTextChunk: (chunk: string) => void;
+
+  /** Claude-Code-only: directory scoped to this call (containing a
+   *  .claude/skills/ subtree) so only the bound skill is discoverable.
+   *  Passed via --add-dir. Ignored by other providers. */
+  readonly skillsDir?: string;
+
+  /** Claude-Code-only permission mode. Default (unset) = 'default'. */
+  readonly permissionMode?: PermissionMode;
+
+  /** Lifts the single-turn cap. Default 1 keeps back-compat for the
+   *  moderator/oracle single-shot callers. */
+  readonly maxTurns?: number;
+
+  /** Fired when Claude Code emits a tool_use / tool_result event. */
+  readonly onToolUse?: (event: ToolUseEvent) => void;
 }
 
 export interface StreamResult {

@@ -14,6 +14,8 @@ export interface AgentDef {
   readonly preferredModel?: string;
   /** Per-agent visual identity rendered by webview/scene/Agent.ts. */
   readonly visual: AgentVisual;
+  /** Directory-name lookup key for the bundled SKILL.md. Defaults to `id`. */
+  readonly skillId?: string;
 }
 
 export interface Room {

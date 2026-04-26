@@ -1,11 +1,10 @@
 /**
- * The floor-plan SVG. Ported verbatim from MOCKUP.html to preserve the ≥95%
- * visual match required by Milestone 1. Figures, desks, and agent counts are
- * placeholder geometry — later milestones replace them with data-driven renders.
+ * The floor-plan SVG. Oracle + Great Hall anchored in the top row; the six
+ * discipline rooms fill a 3×2 grid below.
  */
 export function buildingSvg(): string {
   return `
-<svg class="building" viewBox="0 0 800 940" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="The Hollow Halls — floor plan">
+<svg class="building" viewBox="0 0 800 668" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="The Hollow Halls — floor plan">
   <defs>
     <pattern id="planks" x="0" y="0" width="50" height="14" patternUnits="userSpaceOnUse">
       <rect width="50" height="14" fill="#1a1426"/>
@@ -81,46 +80,109 @@ export function buildingSvg(): string {
     </radialGradient>
   </defs>
 
-  <rect width="800" height="940" fill="#070510"/>
+  <rect width="800" height="668" fill="#070510"/>
+
+  <!-- ===== TOP ROW: Oracle (left) + Great Hall (right) ===== -->
 
   <!-- Oracle's Chamber -->
-  <g class="room oracle" data-room="oracle">
-    <rect x="280" y="20" width="240" height="130" fill="#3a3045"/>
-    <rect x="285" y="25" width="230" height="120" fill="#161122"/>
-    <ellipse cx="400" cy="85" rx="100" ry="50" fill="url(#glow-oracle)"/>
+  <g class="room oracle room-live" data-room="oracle">
+    <rect x="20" y="20" width="370" height="142" fill="#3a3045"/>
+    <rect x="26" y="26" width="358" height="130" fill="#161122"/>
+    <ellipse cx="205" cy="91" rx="130" ry="55" fill="url(#glow-oracle)"/>
 
-    <rect x="320" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
-    <line x1="331" y1="34" x2="331" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
-    <rect x="389" y="30" width="22" height="44" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
-    <line x1="400" y1="30" x2="400" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
-    <rect x="458" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
-    <line x1="469" y1="34" x2="469" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+    <rect x="89" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
+    <line x1="100" y1="34" x2="100" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+    <rect x="194" y="30" width="22" height="44" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
+    <line x1="205" y1="30" x2="205" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
+    <rect x="299" y="34" width="22" height="40" fill="#0a0814" stroke="#9de0f0" stroke-opacity="0.4" stroke-width="0.5"/>
+    <line x1="310" y1="34" x2="310" y2="74" stroke="#9de0f0" stroke-opacity="0.3" stroke-width="0.4"/>
 
-    <circle cx="400" cy="105" r="22" fill="none" stroke="#9de0f0" stroke-opacity="0.35" stroke-width="0.5"/>
-    <circle cx="400" cy="105" r="14" fill="none" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
-    <line x1="380" y1="105" x2="420" y2="105" stroke="#9de0f0" stroke-opacity="0.25" stroke-width="0.4"/>
-    <line x1="400" y1="85"  x2="400" y2="125" stroke="#9de0f0" stroke-opacity="0.25" stroke-width="0.4"/>
+    <circle cx="205" cy="109" r="22" fill="none" stroke="#9de0f0" stroke-opacity="0.35" stroke-width="0.5"/>
+    <circle cx="205" cy="109" r="14" fill="none" stroke="#9de0f0" stroke-opacity="0.5" stroke-width="0.5"/>
+    <line x1="26" y1="109" x2="384" y2="109" stroke="#9de0f0" stroke-opacity="0.12" stroke-width="0.4"/>
+    <line x1="205" y1="26" x2="205" y2="156" stroke="#9de0f0" stroke-opacity="0.12" stroke-width="0.4"/>
 
     <g class="room-figure">
-      <g transform="translate(392 88)" class="breath"><use href="#hk" width="16" height="22"/></g>
-      <circle cx="400" cy="80" r="2.2" fill="#9de0f0" opacity="0.95">
-        <animate attributeName="cy" values="80;74;80" dur="3.5s" repeatCount="indefinite"/>
+      <g transform="translate(197 82)" class="breath"><use href="#hk" width="16" height="22"/></g>
+      <circle cx="205" cy="79" r="2.2" fill="#9de0f0" opacity="0.95">
+        <animate attributeName="cy" values="79;73;79" dur="3.5s" repeatCount="indefinite"/>
         <animate attributeName="opacity" values="0.95;0.5;0.95" dur="3.5s" repeatCount="indefinite"/>
       </circle>
     </g>
 
-    <text x="295" y="142" font-family="Cinzel, serif" font-size="10" letter-spacing="3" fill="#f2ead7" opacity="0.85">THE ORACLE</text>
-    <text x="446" y="142" font-family="IBM Plex Mono, monospace" font-size="7" letter-spacing="1" fill="#9de0f0" opacity="0.75">— the entrance</text>
+    <text x="32" y="150" font-family="Cinzel, serif" font-size="10" letter-spacing="3" fill="#f2ead7" opacity="0.85">THE ORACLE</text>
+    <text x="187" y="150" font-family="IBM Plex Mono, monospace" font-size="7" letter-spacing="1" fill="#9de0f0" opacity="0.75">— the entrance</text>
 
-    <rect class="room-tint" x="285" y="25" width="230" height="120"/>
-    <rect class="room-stroke" x="285" y="25" width="230" height="120" fill="none"/>
-    <text class="enter-hint" x="500" y="42" font-family="IBM Plex Mono, monospace" font-size="8" fill="#9de0f0" letter-spacing="2">CONSULT ›</text>
+    <rect class="room-tint" x="26" y="26" width="358" height="130"/>
+    <rect class="room-stroke" x="26" y="26" width="358" height="130" fill="none"/>
+    <text class="enter-hint" x="365" y="40" font-family="IBM Plex Mono, monospace" font-size="8" fill="#9de0f0" letter-spacing="2" text-anchor="end">CONSULT ›</text>
   </g>
 
-  <!-- corridor oracle → building -->
-  <rect x="392" y="150" width="16" height="22" fill="#161122"/>
-  <rect x="386" y="150" width="6" height="22" fill="#3a3045"/>
-  <rect x="408" y="150" width="6" height="22" fill="#3a3045"/>
+  <!-- THE GREAT HALL -->
+  <g class="room common room-live" data-room="common">
+    <rect x="400" y="20" width="380" height="142" fill="#3a3045"/>
+    <rect x="406" y="26" width="368" height="130" fill="#15101e"/>
+    <ellipse cx="590" cy="91" rx="160" ry="55" fill="url(#glow-common)"/>
+
+    <rect x="438" y="26" width="4" height="70" fill="#0a0814"/>
+    <rect x="498" y="26" width="4" height="70" fill="#0a0814"/>
+    <rect x="543" y="26" width="4" height="75" fill="#0a0814"/>
+    <rect x="633" y="26" width="4" height="75" fill="#0a0814"/>
+    <rect x="658" y="26" width="4" height="70" fill="#0a0814"/>
+    <rect x="718" y="26" width="4" height="70" fill="#0a0814"/>
+
+    <path d="M442 156 L442 95 Q470 72 498 95 L498 156 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.14" stroke-width="0.5"/>
+    <path d="M547 156 L547 77 Q590 54 633 77 L633 156 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.24" stroke-width="0.6"/>
+    <path d="M662 156 L662 95 Q690 72 718 95 L718 156 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.14" stroke-width="0.5"/>
+
+    <ellipse cx="590" cy="132" rx="170" ry="14" fill="#3a2a1a"/>
+    <ellipse cx="590" cy="126" rx="164" ry="12" fill="#5a3f28"/>
+    <ellipse cx="590" cy="126" rx="164" ry="12" fill="none" stroke="#7a5540" stroke-opacity="0.4" stroke-width="0.5"/>
+
+    <circle cx="590" cy="123" r="3" fill="#e4c056" opacity="0.95">
+      <animate attributeName="opacity" values="0.95;0.55;0.95" dur="3s" repeatCount="indefinite"/>
+    </circle>
+
+    <g class="room-figure">
+      <g transform="translate(454 97)" class="breath"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(497 97)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(540 97)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(582 97)" class="breath"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(625 97)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(668 97)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
+      <g transform="translate(710 97)" class="breath"><use href="#hk" width="16" height="22"/></g>
+    </g>
+
+    <circle cx="462" cy="93" r="2" fill="#e8a04a" opacity="0.85"/>
+    <circle cx="505" cy="93" r="2" fill="#5ec8c0" opacity="0.85"/>
+    <circle cx="548" cy="93" r="2" fill="#9d7cd8" opacity="0.85"/>
+    <circle cx="590" cy="93" r="2" fill="#9de0f0" opacity="0.95"/>
+    <circle cx="633" cy="93" r="2" fill="#e07a95" opacity="0.85"/>
+    <circle cx="676" cy="93" r="2" fill="#e4c056" opacity="0.85"/>
+    <circle cx="718" cy="93" r="2" fill="#d66c6c" opacity="0.85"/>
+
+    <circle cx="590" cy="68" r="1.6" fill="#f2ead7" opacity="0.85">
+      <animate attributeName="cy" values="68;55;68" dur="5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="462" cy="72" r="1.2" fill="#5ec8c0" opacity="0.7">
+      <animate attributeName="cy" values="72;60;72" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="718" cy="72" r="1.2" fill="#e8a04a" opacity="0.7">
+      <animate attributeName="cy" values="72;58;72" dur="5.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="410" y="150" font-family="Cinzel, serif" font-size="10" letter-spacing="4" fill="#f2ead7">THE GREAT HALL</text>
+    <text x="762" y="150" font-family="IBM Plex Mono, monospace" font-size="7" fill="#b9b2a3" opacity="0.6" text-anchor="end">7 present</text>
+
+    <rect class="room-tint" x="406" y="26" width="368" height="130"/>
+    <rect class="room-stroke" x="406" y="26" width="368" height="130" fill="none"/>
+    <text class="enter-hint" x="762" y="40" font-family="IBM Plex Mono, monospace" font-size="8" fill="#f2ead7" letter-spacing="2" text-anchor="end">CONVENE ›</text>
+  </g>
+
+  <!-- corridor: top tiles → building -->
+  <rect x="392" y="163" width="16" height="9" fill="#161122"/>
+  <rect x="386" y="163" width="6" height="9" fill="#3a3045"/>
+  <rect x="408" y="163" width="6" height="9" fill="#3a3045"/>
 
   <!-- building shell -->
   <rect x="20" y="172" width="760" height="490" fill="#3a3045"/>
@@ -429,80 +491,7 @@ export function buildingSvg(): string {
     <text class="enter-hint" x="736" y="450" font-family="IBM Plex Mono, monospace" font-size="7" fill="#d66c6c" letter-spacing="1.5">ENTER ›</text>
   </g>
 
-  <!-- corridor to great hall -->
-  <rect x="392" y="662" width="16" height="22" fill="#161122"/>
-  <rect x="386" y="662" width="6" height="22" fill="#3a3045"/>
-  <rect x="408" y="662" width="6" height="22" fill="#3a3045"/>
-
-  <!-- THE GREAT HALL -->
-  <g class="room common" data-room="common">
-    <rect x="20" y="684" width="760" height="246" fill="#3a3045"/>
-    <rect x="26" y="690" width="748" height="234" fill="#15101e"/>
-    <ellipse cx="400" cy="800" rx="320" ry="100" fill="url(#glow-common)"/>
-
-    <path d="M120 760 L120 720 Q170 685 220 720 L220 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.6"/>
-    <path d="M340 760 L340 712 Q400 680 460 712 L460 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.32" stroke-width="0.7"/>
-    <path d="M580 760 L580 720 Q630 685 680 720 L680 760 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.6"/>
-    <ellipse cx="400" cy="740" rx="60" ry="20" fill="#f2ead7" opacity="0.06"/>
-
-    <rect x="116" y="690" width="6" height="70" fill="#0a0814"/>
-    <rect x="218" y="690" width="6" height="70" fill="#0a0814"/>
-    <rect x="336" y="690" width="6" height="70" fill="#0a0814"/>
-    <rect x="458" y="690" width="6" height="70" fill="#0a0814"/>
-    <rect x="576" y="690" width="6" height="70" fill="#0a0814"/>
-    <rect x="678" y="690" width="6" height="70" fill="#0a0814"/>
-
-    <line x1="26" y1="780" x2="774" y2="780" stroke="#f2ead7" stroke-opacity="0.05"/>
-    <line x1="26" y1="820" x2="774" y2="820" stroke="#f2ead7" stroke-opacity="0.04"/>
-    <line x1="26" y1="870" x2="774" y2="870" stroke="#f2ead7" stroke-opacity="0.03"/>
-
-    <ellipse cx="400" cy="850" rx="120" ry="22" fill="#3a2a1a"/>
-    <ellipse cx="400" cy="844" rx="120" ry="22" fill="#5a3f28"/>
-    <ellipse cx="400" cy="844" rx="114" ry="18" fill="#3a2a1a"/>
-    <ellipse cx="400" cy="844" rx="114" ry="18" fill="none" stroke="#7a5540" stroke-opacity="0.5" stroke-width="0.6"/>
-    <rect x="368" y="836" width="12" height="6" fill="#f2ead7" opacity="0.6" transform="rotate(8 374 839)"/>
-    <rect x="412" y="838" width="14" height="6" fill="#f2ead7" opacity="0.4" transform="rotate(-4 419 841)"/>
-    <circle cx="400" cy="841" r="3" fill="#e4c056" opacity="0.95">
-      <animate attributeName="opacity" values="0.95;0.55;0.95" dur="3s" repeatCount="indefinite"/>
-    </circle>
-
-    <g class="room-figure">
-      <g transform="translate(280 818)" class="breath"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(312 808)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(352 802)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(392 800)" class="breath"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(432 802)" class="breath b2"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(472 808)" class="breath b3"><use href="#hk" width="16" height="22"/></g>
-      <g transform="translate(504 818)" class="breath"><use href="#hk" width="16" height="22"/></g>
-    </g>
-
-    <circle cx="276" cy="826" r="2" fill="#e8a04a" opacity="0.85"/>
-    <circle cx="308" cy="816" r="2" fill="#5ec8c0" opacity="0.85"/>
-    <circle cx="348" cy="810" r="2" fill="#9d7cd8" opacity="0.85"/>
-    <circle cx="388" cy="808" r="2" fill="#9de0f0" opacity="0.95"/>
-    <circle cx="448" cy="810" r="2" fill="#e07a95" opacity="0.85"/>
-    <circle cx="488" cy="816" r="2" fill="#e4c056" opacity="0.85"/>
-    <circle cx="520" cy="826" r="2" fill="#d66c6c" opacity="0.85"/>
-
-    <circle cx="400" cy="730" r="1.6" fill="#f2ead7" opacity="0.85">
-      <animate attributeName="cy" values="730;716;730" dur="5s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="170" cy="740" r="1.2" fill="#5ec8c0" opacity="0.7">
-      <animate attributeName="cy" values="740;726;740" dur="6s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="630" cy="740" r="1.2" fill="#e8a04a" opacity="0.7">
-      <animate attributeName="cy" values="740;724;740" dur="5.5s" repeatCount="indefinite"/>
-    </circle>
-
-    <text x="32" y="920" font-family="Cinzel, serif" font-size="11" letter-spacing="5" fill="#f2ead7">THE GREAT HALL</text>
-    <text x="220" y="920" font-family="IBM Plex Mono, monospace" font-size="8" fill="#b9b2a3" opacity="0.7">— where all agents gather and speak in turn</text>
-    <text x="700" y="920" font-family="IBM Plex Mono, monospace" font-size="8" fill="#b9b2a3" opacity="0.7" text-anchor="end">7 present</text>
-
-    <rect class="room-tint" x="26" y="690" width="748" height="234"/>
-    <rect class="room-stroke" x="26" y="690" width="748" height="234" fill="none"/>
-    <text class="enter-hint" x="700" y="704" font-family="IBM Plex Mono, monospace" font-size="8" fill="#f2ead7" letter-spacing="2" text-anchor="end">CONVENE ›</text>
-  </g>
-
-  <rect width="800" height="940" fill="url(#vignette)" pointer-events="none"/>
+  <rect width="800" height="668" fill="url(#vignette)" pointer-events="none"/>
 </svg>`.trim();
 }
+

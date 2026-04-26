@@ -96,6 +96,12 @@ export class PromptBar {
     this.textarea.focus();
   }
 
+  prefill(text: string): void {
+    this.textarea.value = text;
+    this.textarea.focus();
+    this.updateState();
+  }
+
   reset(): void {
     this.textarea.value = '';
     this.busy = false;

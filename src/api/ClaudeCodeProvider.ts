@@ -2,7 +2,13 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ProviderUnavailableError, type LlmProvider, type StreamArgs, type StreamResult } from './provider';
+import {
+  ProviderUnavailableError,
+  type LlmProvider,
+  type StreamArgs,
+  type StreamResult,
+  type ToolUseEvent,
+} from './provider';
 
 /**
  * Shells out to the `claude` CLI in headless mode. Inherits the user's keychain
@@ -44,15 +50,24 @@ export class ClaudeCodeProvider implements LlmProvider {
 
     try {
       const binary = this.opts.binaryPath ?? defaultBinary();
+      const maxTurns = Math.max(1, args.maxTurns ?? 1);
       const cliArgs = [
         '-p',
         '--system-prompt-file', systemFile,
         '--model', this.opts.model,
-        '--max-turns', '1',
+        '--max-turns', String(maxTurns),
         '--output-format', 'stream-json',
         '--verbose',
         '--include-partial-messages',
       ];
+      if (args.permissionMode) {
+        cliArgs.push('--permission-mode', args.permissionMode);
+      }
+      if (args.skillsDir) {
+        // `.claude/skills/` within the added dir is auto-loaded by Claude Code,
+        // scoping the agent to exactly the skill we ship for them.
+        cliArgs.push('--add-dir', args.skillsDir);
+      }
 
       child = spawn(binary, cliArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -88,6 +103,7 @@ export class ClaudeCodeProvider implements LlmProvider {
           onAuthFailed: () => {
             authFailed = true;
           },
+          onToolUse: args.onToolUse,
         });
 
         const exitCode = await waitForExit(child);
@@ -147,6 +163,7 @@ interface StreamCallbacks {
   onTextDelta: (chunk: string) => void;
   onResult: (r: { inputTokens: number; outputTokens: number; model?: string; costUSD?: number }) => void;
   onAuthFailed: () => void;
+  onToolUse?: (event: ToolUseEvent) => void;
 }
 
 async function parseStream(stdout: NodeJS.ReadableStream, cb: StreamCallbacks): Promise<void> {
@@ -180,6 +197,37 @@ function handleLine(line: string, cb: StreamCallbacks): void {
     if (ev?.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
       const text = ev.delta.text;
       if (typeof text === 'string' && text.length > 0) cb.onTextDelta(text);
+      return;
+    }
+    // Tool-use start: the model is calling a tool. Fires once when the model
+    // commits to a tool name; its input payload may follow in subsequent
+    // input_json_delta events but we only surface the initial name + id here.
+    if (ev?.type === 'content_block_start' && ev.content_block?.type === 'tool_use') {
+      cb.onToolUse?.({
+        phase: 'start',
+        toolName: String(ev.content_block.name ?? 'tool'),
+        toolUseId: typeof ev.content_block.id === 'string' ? ev.content_block.id : undefined,
+        input: ev.content_block.input,
+      });
+    }
+    return;
+  }
+
+  // A `user` message with content_block.type === 'tool_result' carries the
+  // tool's output back to the model — we surface it as our 'result' phase so
+  // the transcript can render a paired line.
+  if (msg?.type === 'user' && Array.isArray(msg.message?.content)) {
+    for (const block of msg.message.content) {
+      if (block?.type === 'tool_result') {
+        const output = extractToolResultText(block.content);
+        cb.onToolUse?.({
+          phase: 'result',
+          toolName: 'tool',
+          toolUseId: typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined,
+          output,
+          isError: block.is_error === true,
+        });
+      }
     }
     return;
   }
@@ -198,6 +246,21 @@ function handleLine(line: string, cb: StreamCallbacks): void {
   if (msg?.type === 'system' && msg?.subtype === 'api_retry' && msg?.error === 'authentication_failed') {
     cb.onAuthFailed();
   }
+}
+
+function extractToolResultText(content: unknown): string | undefined {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const b of content) {
+      if (b && typeof b === 'object' && (b as { type?: unknown }).type === 'text') {
+        const text = (b as { text?: unknown }).text;
+        if (typeof text === 'string') parts.push(text);
+      }
+    }
+    if (parts.length > 0) return parts.join('\n');
+  }
+  return undefined;
 }
 
 function waitForExit(child: ChildProcess): Promise<number> {

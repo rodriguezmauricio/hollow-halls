@@ -44,6 +44,16 @@
         "command": "hollowHalls.editSettings",
         "title": "Hollow Halls: Edit Settings",
         "category": "Hollow Halls"
+      },
+      {
+        "command": "hollowHalls.editAgentSkill",
+        "title": "Hollow Halls: Edit Skill for Agent",
+        "category": "Hollow Halls"
+      },
+      {
+        "command": "hollowHalls.createSkill",
+        "title": "Hollow Halls: Create Skill",
+        "category": "Hollow Halls"
       }
     ]
   },

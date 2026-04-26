@@ -1,4 +1,4 @@
-import type { AgentPublicInfo, RoomPublicInfo } from '@/messaging/protocol';
+import type { AgentPublicInfo, AttendingAgent, RoomPublicInfo } from '@/messaging/protocol';
 import { agentSprite } from '../Agent';
 
 /**
@@ -92,6 +92,23 @@ export function buildRoomScene(room: RoomPublicInfo): string {
 
   <!-- agent seats (rendered after the table so heads overlap its top edge) -->
   ${agentsSvg}
+
+  <!-- thinking bubble with three pulsing dots — positioned over the speaker -->
+  <g class="thinking-bubble" transform="translate(-1000 190)" opacity="0"
+     style="--bubble-color: ${room.accentColor}">
+    <ellipse cx="0" cy="0" rx="32" ry="16" fill="#0e0b1a"
+             style="stroke: var(--bubble-color); stroke-opacity: 0.95"
+             stroke-width="1.6"/>
+    <circle class="dot dot-1" cx="-12" cy="0" r="2.8"
+            style="fill: var(--bubble-color)"/>
+    <circle class="dot dot-2" cx="0"   cy="0" r="2.8"
+            style="fill: var(--bubble-color)"/>
+    <circle class="dot dot-3" cx="12"  cy="0" r="2.8"
+            style="fill: var(--bubble-color)"/>
+    <polygon points="-5,14 5,14 0,24" fill="#0e0b1a"
+             style="stroke: var(--bubble-color); stroke-opacity: 0.95"
+             stroke-width="1.2"/>
+  </g>
 </svg>`.trim();
 }
 
@@ -415,4 +432,126 @@ function computeSeatPositions(n: number): SeatPosition[] {
 
 function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string));
+}
+
+/**
+ * The Great Hall interior. Wider than a room, seats up to seven attendees
+ * each painted with their home room's accent so different disciplines are
+ * visually distinguishable at the table.
+ */
+export function buildGreatHallScene(attending: readonly AttendingAgent[]): string {
+  const n = Math.max(1, attending.length);
+  const seatPositions = computeSeatPositions(n);
+  const agentsSvg = attending
+    .map((a, i) => {
+      const pos = seatPositions[i];
+      if (!pos) return '';
+      return attendingAtSeat(a, pos);
+    })
+    .join('');
+
+  return `
+<svg class="room-svg great-hall-svg" viewBox="0 0 ${SCENE_VB.w} ${SCENE_VB.h}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <pattern id="gh-planks" x="0" y="0" width="48" height="14" patternUnits="userSpaceOnUse">
+      <rect width="48" height="14" fill="#1a1426"/>
+      <line x1="0" y1="14" x2="48" y2="14" stroke="#0e0a18" stroke-width="0.6"/>
+      <line x1="24" y1="0" x2="24" y2="14" stroke="#221a30" stroke-width="0.5"/>
+    </pattern>
+    <radialGradient id="gh-glow" cx="50%" cy="55%" r="65%">
+      <stop offset="0%" stop-color="#f2ead7" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#f2ead7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gh-table-wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#6a4a2e"/>
+      <stop offset="45%" stop-color="#4e3522"/>
+      <stop offset="100%" stop-color="#2e1f14"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="${SCENE_VB.w}" height="260" fill="#161124"/>
+  <rect x="0" y="0" width="${SCENE_VB.w}" height="8" fill="#3a3045"/>
+
+  <!-- three tall arches -->
+  <path d="M220 200 L220 80 Q300 10 380 80 L380 200 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.25" stroke-width="1"/>
+  <path d="M520 220 L520 60 Q600 -10 680 60 L680 220 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.35" stroke-width="1.2"/>
+  <path d="M820 200 L820 80 Q900 10 980 80 L980 200 Z" fill="#1c1830" stroke="#f2ead7" stroke-opacity="0.25" stroke-width="1"/>
+  <line x1="300" y1="22" x2="300" y2="200" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.8"/>
+  <line x1="600" y1="0"  x2="600" y2="220" stroke="#f2ead7" stroke-opacity="0.32" stroke-width="0.9"/>
+  <line x1="900" y1="22" x2="900" y2="200" stroke="#f2ead7" stroke-opacity="0.22" stroke-width="0.8"/>
+
+  <ellipse cx="600" cy="420" rx="560" ry="160" fill="url(#gh-glow)"/>
+
+  <!-- wood floor -->
+  <rect x="0" y="260" width="${SCENE_VB.w}" height="${SCENE_VB.h - 260}" fill="url(#gh-planks)"/>
+  <rect x="0" y="258" width="${SCENE_VB.w}" height="3" fill="#000" opacity="0.5"/>
+
+  <!-- long table -->
+  <g class="room-table">
+    <rect x="${TABLE.x}" y="${TABLE.y}" width="${TABLE.w}" height="${TABLE.h}" fill="url(#gh-table-wood)"/>
+    <rect x="${TABLE.x}" y="${TABLE.y}" width="${TABLE.w}" height="6" fill="#7a5540" opacity="0.55"/>
+    <rect x="${TABLE.x}" y="${TABLE.y + TABLE.h - 4}" width="${TABLE.w}" height="4" fill="#000" opacity="0.45"/>
+    <ellipse cx="${TABLE.x + TABLE.w / 2}" cy="${TABLE.y + TABLE.h + 22}"
+             rx="${TABLE.w / 2 + 20}" ry="22" fill="#000" opacity="0.35"/>
+
+    <!-- three taper candles along the centre -->
+    <g>
+      <rect x="${TABLE.x + 200}" y="${TABLE.y + 26}" width="3" height="16" fill="#f2ead7"/>
+      <circle cx="${TABLE.x + 201.5}" cy="${TABLE.y + 24}" r="2.4" fill="#e4c056">
+        <animate attributeName="opacity" values="0.9;0.55;0.9" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    <g>
+      <rect x="${TABLE.x + TABLE.w / 2 - 1.5}" y="${TABLE.y + 22}" width="3" height="20" fill="#f2ead7"/>
+      <circle cx="${TABLE.x + TABLE.w / 2}" cy="${TABLE.y + 20}" r="3" fill="#e4c056">
+        <animate attributeName="opacity" values="0.95;0.6;0.95" dur="2.6s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    <g>
+      <rect x="${TABLE.x + TABLE.w - 200}" y="${TABLE.y + 26}" width="3" height="16" fill="#f2ead7"/>
+      <circle cx="${TABLE.x + TABLE.w - 198.5}" cy="${TABLE.y + 24}" r="2.4" fill="#e4c056">
+        <animate attributeName="opacity" values="0.9;0.55;0.9" dur="2.4s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+
+    <polygon class="speaker-pointer" points="-14,0 14,0 0,18"
+             transform="translate(-1000 ${TABLE.y - 6})"
+             fill="#f2ead7" opacity="0"/>
+  </g>
+
+  ${agentsSvg}
+
+  <!-- thinking bubble — positioned over the current speaker (or table center
+       while the moderator is picking). Three dots pulse via CSS. -->
+  <g class="thinking-bubble" transform="translate(-1000 190)" opacity="0">
+    <ellipse cx="0" cy="0" rx="32" ry="16" fill="#0e0b1a"
+             style="stroke: var(--bubble-color, #f2ead7); stroke-opacity: 0.95"
+             stroke-width="1.6"/>
+    <circle class="dot dot-1" cx="-12" cy="0" r="2.8"
+            style="fill: var(--bubble-color, #f2ead7)"/>
+    <circle class="dot dot-2" cx="0"   cy="0" r="2.8"
+            style="fill: var(--bubble-color, #f2ead7)"/>
+    <circle class="dot dot-3" cx="12"  cy="0" r="2.8"
+            style="fill: var(--bubble-color, #f2ead7)"/>
+    <polygon points="-5,14 5,14 0,24" fill="#0e0b1a"
+             style="stroke: var(--bubble-color, #f2ead7); stroke-opacity: 0.95"
+             stroke-width="1.2"/>
+  </g>
+</svg>`.trim();
+}
+
+function attendingAtSeat(a: AttendingAgent, pos: SeatPosition): string {
+  const sprite = agentSprite(a.agent.visual, 'large')
+    .replace('<svg ', `<svg x="${pos.x}" y="${pos.y}" `);
+  return `<g class="agent-seat" data-seat="${a.agent.id}" data-seat-x="${pos.pointerX}" style="--seat-accent:${a.accentColor}">
+    ${sprite}
+    <text x="${pos.pointerX}" y="${TABLE.y + TABLE.h + 54}"
+          text-anchor="middle"
+          font-family="Cinzel, serif" font-size="13" letter-spacing="3"
+          fill="${a.accentColor}" opacity="0.95">${escapeText(a.agent.name.toUpperCase())}</text>
+    <text x="${pos.pointerX}" y="${TABLE.y + TABLE.h + 70}"
+          text-anchor="middle"
+          font-family="IBM Plex Mono, monospace" font-size="9" letter-spacing="1.5"
+          fill="#b9b2a3" opacity="0.7">${escapeText(a.agent.tag)}</text>
+  </g>`;
 }

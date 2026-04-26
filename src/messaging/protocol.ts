@@ -3,6 +3,16 @@
  * Both sides import from this module (webview via esbuild bundling).
  */
 
+/** Oracle routing decision — shared between extension host and webview. */
+export type OracleDecision =
+  | { readonly route: 'room'; readonly roomId: string; readonly rationale: string }
+  | {
+      readonly route: 'hall';
+      readonly agents: ReadonlyArray<{ readonly roomId: string; readonly agentId: string }>;
+      readonly rationale: string;
+    }
+  | { readonly route: 'direct'; readonly answer: string };
+
 /** Visual identity hooks. Rendered by webview/scene/Agent.ts. All fields
  *  are hex colors unless noted. Agents may be visually "empty" in which case
  *  the renderer falls back to a silhouette. */
@@ -32,6 +42,15 @@ export interface RoomPublicInfo {
   readonly agents: readonly AgentPublicInfo[];
 }
 
+/** One attending agent at a Great Hall meeting, carrying its source room's
+ *  accent so the transcript can paint each turn with the right soul color. */
+export interface AttendingAgent {
+  readonly roomId: string;
+  readonly roomName: string;
+  readonly accentColor: string;
+  readonly agent: AgentPublicInfo;
+}
+
 export type WebviewMsg =
   | { readonly type: 'ready' }
   | { readonly type: 'open_room'; readonly roomId: string }
@@ -41,7 +60,29 @@ export type WebviewMsg =
       readonly roomId: string;
       readonly agentIds: readonly string[];
       readonly prompt: string;
-    };
+      /** Optional mode override ('acceptEdits' triggered by a BUILD button). */
+      readonly permissionMode?:
+        | 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+    }
+  | {
+      /** Re-send the most recent user prompt to the same agent in acceptEdits.
+       *  main.ts retained the original prompt + agent ids per room. */
+      readonly type: 'build_last_turn';
+      readonly roomId: string;
+      readonly agentId: string;
+      readonly prompt: string;
+    }
+  | { readonly type: 'open_great_hall' }
+  | { readonly type: 'close_great_hall' }
+  | {
+      readonly type: 'convene';
+      /** Selected participants, each as {roomId, agentId}. */
+      readonly picks: ReadonlyArray<{ readonly roomId: string; readonly agentId: string }>;
+      readonly task: string;
+    }
+  | { readonly type: 'cancel_meeting'; readonly meetingId: string }
+  | { readonly type: 'cancel_room_stream'; readonly roomId: string }
+  | { readonly type: 'oracle_consult'; readonly prompt: string };
 
 export type ExtensionMsg =
   | {
@@ -95,6 +136,60 @@ export type ExtensionMsg =
       /** Cost of this specific stream (USD). */
       readonly thisStreamUSD: number;
     }
+  | {
+      readonly type: 'great_hall_opened';
+      /** Agents available to convene, grouped by their home room. */
+      readonly roster: ReadonlyArray<{
+        readonly roomId: string;
+        readonly roomName: string;
+        readonly accentColor: string;
+        readonly agents: readonly AgentPublicInfo[];
+      }>;
+    }
+  | {
+      readonly type: 'meeting_started';
+      readonly meetingId: string;
+      readonly attending: readonly AttendingAgent[];
+      readonly task: string;
+    }
+  | {
+      readonly type: 'moderator_pick';
+      readonly meetingId: string;
+      readonly agentId: string;
+      /** Short why-next rationale from the moderator (≤10 words). */
+      readonly rationale: string;
+    }
+  | {
+      readonly type: 'meeting_ended';
+      readonly meetingId: string;
+      readonly reason: 'done' | 'turn_limit' | 'cancelled' | 'error';
+      readonly turns: number;
+      readonly costUSD: number;
+      /** Filesystem path of the saved transcript, if persistence succeeded. */
+      readonly transcriptPath?: string;
+    }
+  | {
+      readonly type: 'agent_tool_use';
+      readonly roomId: string;
+      readonly meetingId: string;
+      readonly agentId: string;
+      readonly phase: 'start' | 'result';
+      readonly toolName: string;
+      /** Pre-formatted one-line summary for display. */
+      readonly summary: string;
+      readonly isError?: boolean;
+      /** Opaque correlation id so the webview can pair start→result. */
+      readonly toolUseId?: string;
+    }
+  | {
+      /** A plan-mode reply finished streaming; text has been saved to disk. */
+      readonly type: 'plan_saved';
+      readonly roomId: string;
+      readonly agentId: string;
+      readonly path: string;
+    }
+  | { readonly type: 'oracle_thinking' }
+  | { readonly type: 'oracle_response'; readonly decision: OracleDecision }
   | {
       readonly type: 'error';
       readonly message: string;

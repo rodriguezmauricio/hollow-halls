@@ -1,11 +1,13 @@
 import type { RoomPublicInfo } from '@/messaging/protocol';
 import { buildRoomScene } from './scenes';
-import { Transcript, type Turn, type TurnAgentCost } from './Transcript';
+import { Transcript, type Turn, type TurnAgentCost, type TurnToolUse } from './Transcript';
 import { PromptBar } from './PromptBar';
 
 export interface RoomViewCallbacks {
   readonly onLeave: () => void;
   readonly onSend: (roomId: string, agentIds: string[], prompt: string) => void;
+  readonly onBuild: (roomId: string, agentId: string, prompt: string) => void;
+  readonly onStop: (roomId: string) => void;
 }
 
 /**
@@ -21,6 +23,10 @@ export class RoomView {
   private promptBar!: PromptBar;
   private room?: RoomPublicInfo;
   private busy = false;
+  /** Agents who've been told to think but haven't emitted their first chunk. */
+  private awaitingFirstChunk = new Set<string>();
+  /** Teardown handlers (resizer listeners) attached on open(). */
+  private teardown: Array<() => void> = [];
 
   constructor(private readonly host: HTMLElement, private readonly cb: RoomViewCallbacks) {
     this.el = document.createElement('div');
@@ -37,7 +43,8 @@ export class RoomView {
     return this.room?.id;
   }
 
-  open(room: RoomPublicInfo, history: Turn[], busy: boolean): void {
+  open(room: RoomPublicInfo, history: Turn[], busy: boolean, mode?: string): void {
+    this.runTeardown();
     this.room = room;
     this.el.style.setProperty('--accent', room.accentColor);
     this.el.innerHTML = `
@@ -47,9 +54,12 @@ export class RoomView {
           <h2 class="room-name"></h2>
           <p class="room-sub"></p>
         </div>
+        <div class="mode-pill" aria-label="permission mode"></div>
+        <button class="room-stop" type="button" aria-label="stop agent" hidden>&#x25A0; STOP</button>
         <div class="room-activity" aria-live="polite"></div>
       </header>
       <div class="room-stage"></div>
+      <div class="room-resizer" role="separator" aria-orientation="horizontal" aria-label="resize scene"></div>
       <div class="room-transcript-host"></div>
       <div class="room-prompt-host"></div>
     `;
@@ -57,6 +67,9 @@ export class RoomView {
     (this.el.querySelector('.room-name') as HTMLElement).textContent = room.name;
     (this.el.querySelector('.room-sub') as HTMLElement).textContent = room.description;
     (this.el.querySelector('.leave') as HTMLElement).addEventListener('click', () => this.cb.onLeave());
+    (this.el.querySelector('.room-stop') as HTMLElement).addEventListener('click', () => {
+      if (this.room) this.cb.onStop(this.room.id);
+    });
 
     this.stage = this.el.querySelector('.room-stage') as HTMLDivElement;
     this.stage.innerHTML = buildRoomScene(room);
@@ -74,22 +87,61 @@ export class RoomView {
     this.promptBar.setAgents([...room.agents], room.accentColor);
 
     this.setBusy(busy);
+    this.wireResizer();
+    this.setMode(mode);
 
     this.el.classList.add('open');
     this.el.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.promptBar.focus());
   }
 
+  /** Set the permission-mode pill in the header. */
+  setMode(mode?: string): void {
+    const pill = this.el.querySelector<HTMLElement>('.mode-pill');
+    if (!pill) return;
+    if (!mode) {
+      pill.textContent = '';
+      pill.classList.remove('mode-pill-shown');
+      return;
+    }
+    pill.textContent = mode;
+    pill.dataset.mode = mode;
+    pill.classList.add('mode-pill-shown');
+  }
+
+  /** Render a tool-use block in the transcript + append it to the retained state. */
+  addToolUse(event: Omit<TurnToolUse, 'kind' | 'at'>): void {
+    this.transcript.addToolUse(event);
+  }
+
+  showBuildOnLastAgentTurn(agentId: string, prompt: string): void {
+    if (!this.room) return;
+    const roomId = this.room.id;
+    this.transcript.showBuildButton(agentId, 'BUILD', () =>
+      this.cb.onBuild(roomId, agentId, prompt),
+    );
+  }
+
+  attachPlanPath(agentId: string, path: string): void {
+    this.transcript.attachPlanPath(agentId, path);
+  }
+
   close(): void {
     this.el.classList.remove('open');
     this.el.setAttribute('aria-hidden', 'true');
     this.hidePointer();
+    this.runTeardown();
     this.room = undefined;
   }
 
   // Streaming API — called when the corresponding extension message arrives
   // and this room is visible. The caller owns per-room transcript state so
   // closing and re-opening can restore it.
+
+  /** Pre-fill the prompt bar (used when the Oracle routes here). */
+  prefillPrompt(text: string): void {
+    this.promptBar.prefill(text);
+  }
 
   appendUserPrompt(text: string): void {
     this.transcript.addUserPrompt(text);
@@ -98,15 +150,22 @@ export class RoomView {
   startAgentTurn(agentId: string): void {
     this.transcript.startAgentTurn(agentId);
     this.pointAt(agentId);
+    this.awaitingFirstChunk.add(agentId);
+    this.showBubbleAtAgent(agentId);
   }
 
   appendAgentChunk(agentId: string, chunk: string): void {
     this.transcript.appendAgentChunk(agentId, chunk);
     this.pointAt(agentId);
+    if (this.awaitingFirstChunk.has(agentId)) {
+      this.awaitingFirstChunk.delete(agentId);
+      this.hideBubble();
+    }
   }
 
   completeAgentTurn(agentId: string): void {
     this.transcript.completeAgentTurn(agentId);
+    this.awaitingFirstChunk.delete(agentId);
   }
 
   applyCost(agentId: string, cost: TurnAgentCost, sessionTotalUSD: number): void {
@@ -131,7 +190,13 @@ export class RoomView {
     this.promptBar.setBusy(busy);
     const ind = this.el.querySelector('.room-activity') as HTMLElement | null;
     if (ind) ind.textContent = busy ? '…deliberating' : '';
-    if (!busy) this.hidePointer();
+    const stopBtn = this.el.querySelector<HTMLButtonElement>('.room-stop');
+    if (stopBtn) stopBtn.hidden = !busy;
+    if (!busy) {
+      this.hidePointer();
+      this.hideBubble();
+      this.awaitingFirstChunk.clear();
+    }
   }
 
   isBusy(): boolean {
@@ -155,6 +220,64 @@ export class RoomView {
     const svg = this.el.querySelector<SVGSVGElement>('svg.room-svg');
     const pointer = svg?.querySelector<SVGPolygonElement>('.speaker-pointer');
     if (pointer) pointer.setAttribute('opacity', '0');
+  }
+
+  private showBubbleAtAgent(agentId: string): void {
+    const svg = this.el.querySelector<SVGSVGElement>('svg.room-svg');
+    if (!svg) return;
+    const bubble = svg.querySelector<SVGGElement>('.thinking-bubble');
+    const seat = svg.querySelector<SVGGElement>(`.agent-seat[data-seat="${CSS.escape(agentId)}"]`);
+    if (!bubble || !seat) return;
+    const x = parseFloat(seat.getAttribute('data-seat-x') ?? '600');
+    bubble.setAttribute('transform', `translate(${x} 190)`);
+    bubble.setAttribute('opacity', '1');
+  }
+
+  private hideBubble(): void {
+    const svg = this.el.querySelector<SVGSVGElement>('svg.room-svg');
+    const bubble = svg?.querySelector<SVGGElement>('.thinking-bubble');
+    if (bubble) bubble.setAttribute('opacity', '0');
+  }
+
+  // ---- resizable stage/transcript divider ----
+
+  private wireResizer(): void {
+    const resizer = this.el.querySelector<HTMLElement>('.room-resizer');
+    const stage = this.el.querySelector<HTMLElement>('.room-stage');
+    if (!resizer || !stage) return;
+
+    let startY = 0;
+    let startH = 0;
+
+    const onMove = (e: PointerEvent) => {
+      const delta = e.clientY - startY;
+      const newH = Math.max(140, Math.min(window.innerHeight - 360, startH + delta));
+      this.el.style.setProperty('--stage-h', `${newH}px`);
+    };
+    const onUp = (e: PointerEvent) => {
+      try { resizer.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+      resizer.removeEventListener('pointermove', onMove);
+      resizer.removeEventListener('pointerup', onUp);
+      resizer.removeEventListener('pointercancel', onUp);
+      this.el.classList.remove('room-resizing');
+    };
+    const onDown = (e: PointerEvent) => {
+      startY = e.clientY;
+      startH = stage.getBoundingClientRect().height;
+      resizer.setPointerCapture(e.pointerId);
+      resizer.addEventListener('pointermove', onMove);
+      resizer.addEventListener('pointerup', onUp);
+      resizer.addEventListener('pointercancel', onUp);
+      this.el.classList.add('room-resizing');
+      e.preventDefault();
+    };
+    resizer.addEventListener('pointerdown', onDown);
+    this.teardown.push(() => resizer.removeEventListener('pointerdown', onDown));
+  }
+
+  private runTeardown(): void {
+    for (const fn of this.teardown) fn();
+    this.teardown = [];
   }
 }
 
