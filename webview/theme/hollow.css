@@ -2122,3 +2122,61 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   border-color: var(--stone);
   color: var(--bone-dim);
 }
+
+/* ---- Council Chamber tile ---- */
+.council-section {
+  padding: 0 0 10px;
+}
+.council-tile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 20px;
+  border: 1px solid #4a3880;
+  background: #1a142e;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.council-tile:hover { border-color: #9d7cd8; background: #1e1836; }
+.council-tile.room-busy { border-color: #9d7cd8; }
+.council-tile-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 160px;
+}
+.council-tile-name {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--bone);
+}
+.council-tile-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  color: #9d7cd8;
+  opacity: 0.8;
+  letter-spacing: 1px;
+}
+.council-tile-agents {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+}
+.council-agent-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--bone-dim);
+  opacity: 0.6;
+  letter-spacing: 1px;
+}
+.council-tile-hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #9d7cd8;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.council-tile:hover .council-tile-hint { opacity: 0.8; }

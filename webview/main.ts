@@ -230,6 +230,45 @@ const roomCreator = new RoomCreatorView(document.body, {
   },
 });
 
+// ---- Council chamber tile ----
+
+const councilSection = (() => {
+  const sec = document.createElement('div');
+  sec.className = 'council-section';
+  sec.hidden = true; // revealed once the council room arrives in init
+  return sec;
+})();
+buildingFrame.appendChild(councilSection);
+
+function renderCouncilTile(room: RoomPublicInfo): void {
+  councilSection.innerHTML = '';
+  const tile = document.createElement('div');
+  tile.className = 'council-tile';
+  tile.dataset.room = room.id;
+  tile.innerHTML = `
+    <div class="council-tile-left">
+      <span class="council-tile-name"></span>
+      <span class="council-tile-sub"></span>
+    </div>
+    <div class="council-tile-agents"></div>
+    <span class="council-tile-hint">ENTER ›</span>
+  `;
+  (tile.querySelector('.council-tile-name') as HTMLElement).textContent = room.name;
+  (tile.querySelector('.council-tile-sub') as HTMLElement).textContent = room.subtitle;
+  const agentsEl = tile.querySelector('.council-tile-agents') as HTMLElement;
+  for (const a of room.agents) {
+    const dot = document.createElement('span');
+    dot.className = 'council-agent-name';
+    dot.textContent = a.name;
+    agentsEl.appendChild(dot);
+  }
+  tile.addEventListener('click', () => {
+    send({ type: 'open_room', roomId: room.id });
+  });
+  councilSection.appendChild(tile);
+  councilSection.hidden = false;
+}
+
 // ---- Custom room tiles ----
 
 /** Container for custom room tiles, shown below the building SVG. */
@@ -376,10 +415,13 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       showProviderBadge(buildingFrame, msg.provider, msg.model);
       cachedSettings = msg.settings;
       applySingletonState(msg.settings.disabledSingletons);
-      // Render tiles for custom rooms (not in the static SVG).
+      // Render tiles for rooms not in the static SVG (council singleton + custom rooms).
       msg.rooms
         .filter((r) => !svg.querySelector(`[data-room="${CSS.escape(r.id)}"]`))
-        .forEach((r) => addCustomRoomTile(r));
+        .forEach((r) => {
+          if (r.id === 'council') renderCouncilTile(r);
+          else addCustomRoomTile(r);
+        });
       showFirstRunOverlay();
       return;
 
@@ -610,6 +652,8 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       st.busy = msg.busy;
       const roomGroup = svg.querySelector<SVGGElement>(`.room[data-room="${CSS.escape(msg.roomId)}"]`);
       if (roomGroup) roomGroup.classList.toggle('room-busy', msg.busy);
+      const councilEl = councilSection.querySelector<HTMLElement>(`[data-room="${CSS.escape(msg.roomId)}"]`);
+      if (councilEl) councilEl.classList.toggle('room-busy', msg.busy);
       if (roomView.currentRoomId() === msg.roomId) {
         roomView.setBusy(msg.busy);
       }

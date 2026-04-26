@@ -14,6 +14,7 @@ import { codeRoom } from '@/rooms/code';
 import { frontRoom } from '@/rooms/front';
 import { marketRoom } from '@/rooms/market';
 import { secRoom } from '@/rooms/sec';
+import { councilRoom } from '@/rooms/council';
 import type { AgentDef, Room } from '@/rooms/types';
 import type { PermissionMode, ToolUseEvent } from '@/api/provider';
 import type {
@@ -42,6 +43,7 @@ function workspaceCwd(): string | undefined {
 }
 
 const ROOMS: readonly Room[] = [
+  councilRoom,
   designRoom,
   uiuxRoom,
   codeRoom,
