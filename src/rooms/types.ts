@@ -16,6 +16,8 @@ export interface AgentDef {
   readonly visual: AgentVisual;
   /** Directory-name lookup key for the bundled SKILL.md. Defaults to `id`. */
   readonly skillId?: string;
+  /** Index into the AGENT_PALETTES preset array (custom agents only). */
+  readonly visualPreset?: number;
 }
 
 export interface Room {

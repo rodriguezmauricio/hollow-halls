@@ -68,15 +68,38 @@ function allRoomsPublic(): import('@/messaging/protocol').RoomPublicInfo[] {
 const CUSTOM_ROOM_SHARED =
   'You are an AI assistant in the Hollow Halls. Be specific, direct, and concise.';
 
+// 8 preset visual palettes for custom agents.
+const AGENT_PALETTES: import('@/messaging/protocol').AgentVisual[] = [
+  { skin: '#c8a882', hair: '#3d2b1f', hairStyle: 'short',  outfit: '#4a3f6e' },
+  { skin: '#dbb99a', hair: '#8b6f47', hairStyle: 'bob',    outfit: '#2a5a4a' },
+  { skin: '#a0785a', hair: '#1a1a2e', hairStyle: 'long',   outfit: '#6e2a3f' },
+  { skin: '#e8c9a8', hair: '#c8832a', hairStyle: 'bun',    outfit: '#2a3a6e' },
+  { skin: '#b8926a', hair: '#2d1a0f', hairStyle: 'buzz',   outfit: '#4e4020' },
+  { skin: '#f0d8c0', hair: '#6b4c3b', hairStyle: 'short',  outfit: '#1e4a3a' },
+  { skin: '#c8a090', hair: '#5a3a2a', hairStyle: 'bob',    outfit: '#5a2a5a' },
+  { skin: '#d4b090', hair: '#9a7a5a', hairStyle: 'long',   outfit: '#3a3a1e' },
+];
+
+function customAgentToAgentDef(a: import('@/core/Persistence').CustomAgentJson): AgentDef {
+  return {
+    id: a.id,
+    name: a.name,
+    tag: a.tag,
+    systemPrompt: a.systemPrompt,
+    visual: AGENT_PALETTES[Math.max(0, Math.min(7, a.visualPreset ?? 0))]!,
+    visualPreset: a.visualPreset ?? 0,
+  };
+}
+
 function customJsonToRoom(json: import('@/core/Persistence').CustomRoomJson): Room {
   return {
     id: json.id,
     name: json.name,
-    subtitle: 'custom',
+    subtitle: `custom · ${(json.agents ?? []).length} agent${(json.agents ?? []).length === 1 ? '' : 's'}`,
     description: json.description,
     accentColor: json.accentColor,
     systemPromptShared: CUSTOM_ROOM_SHARED,
-    agents: [],
+    agents: (json.agents ?? []).map(customAgentToAgentDef),
     position: { kind: 'grid', row: 0, col: 0 },
     isBuiltIn: false,
   };
@@ -279,6 +302,44 @@ function wireMessages(
           await deleteCustomRoom(raw.roomId);
           customRoomMap.delete(raw.roomId);
           send(p, { type: 'room_deleted', roomId: raw.roomId });
+          return;
+        }
+
+        case 'save_agent': {
+          const existingRoom = customRoomMap.get(raw.roomId);
+          if (!existingRoom) return;
+          const existingJson = await loadCustomRooms().then((rs) => rs.find((r) => r.id === raw.roomId));
+          if (!existingJson) return;
+          const agentId = raw.agentId ?? `a_${Date.now().toString(36)}`;
+          const newAgent: import('@/core/Persistence').CustomAgentJson = {
+            id: agentId,
+            name: raw.name.trim() || 'Agent',
+            tag: raw.tag.trim() || 'ai',
+            systemPrompt: raw.systemPrompt.trim(),
+            visualPreset: raw.visualPreset,
+          };
+          const others = (existingJson.agents ?? []).filter((a) => a.id !== agentId);
+          const updatedJson = { ...existingJson, agents: [...others, newAgent] };
+          await saveCustomRoom(updatedJson);
+          const updatedRoom = customJsonToRoom(updatedJson);
+          customRoomMap.set(raw.roomId, updatedRoom);
+          send(p, { type: 'room_updated', room: toPublic(updatedRoom) });
+          return;
+        }
+
+        case 'delete_agent': {
+          const existingRoom2 = customRoomMap.get(raw.roomId);
+          if (!existingRoom2) return;
+          const existingJson2 = await loadCustomRooms().then((rs) => rs.find((r) => r.id === raw.roomId));
+          if (!existingJson2) return;
+          const updatedJson2 = {
+            ...existingJson2,
+            agents: (existingJson2.agents ?? []).filter((a) => a.id !== raw.agentId),
+          };
+          await saveCustomRoom(updatedJson2);
+          const updatedRoom2 = customJsonToRoom(updatedJson2);
+          customRoomMap.set(raw.roomId, updatedRoom2);
+          send(p, { type: 'room_updated', room: toPublic(updatedRoom2) });
           return;
         }
 
@@ -792,6 +853,8 @@ function toPublic(room: Room): RoomPublicInfo {
       name: a.name,
       tag: a.tag,
       visual: a.visual,
+      // Expose system prompts only for custom agents so the editor can pre-fill.
+      ...(room.isBuiltIn ? {} : { systemPrompt: a.systemPrompt, visualPreset: a.visualPreset ?? 0 }),
     })),
   };
 }

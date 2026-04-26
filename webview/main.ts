@@ -4,7 +4,7 @@ import { GreatHallView } from './scene/room/GreatHallView';
 import { OracleView } from './scene/room/OracleView';
 import { RoomCreatorView } from './scene/RoomCreatorView';
 import type { Turn } from './scene/room/Transcript';
-import type { ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
+import type { AgentPublicInfo, ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
 
 let sessionTotalUSD = 0;
 
@@ -178,6 +178,13 @@ const roomCreator = new RoomCreatorView(document.body, {
     roomCreator.close();
     send({ type: 'delete_room', roomId });
   },
+  onSaveAgent: (roomId, agentId, name, tag, systemPrompt, visualPreset) => {
+    send({ type: 'save_agent', roomId, agentId, name, tag, systemPrompt, visualPreset });
+    // UI will refresh when room_updated fires
+  },
+  onDeleteAgent: (roomId, agentId) => {
+    send({ type: 'delete_agent', roomId, agentId });
+  },
   onCancel: () => {
     roomCreator.close();
     buildingFrame.classList.remove('frame-hidden');
@@ -228,7 +235,14 @@ function makeCustomRoomTile(room: RoomPublicInfo): HTMLDivElement {
   tile.querySelector<HTMLButtonElement>('.crt-edit')!.addEventListener('click', (e) => {
     e.stopPropagation();
     buildingFrame.classList.add('frame-hidden');
-    roomCreator.openEdit(room.id, room.name, room.description, room.accentColor);
+    const latest = rooms.get(room.id) ?? room;
+    roomCreator.openEdit({
+      id: latest.id,
+      name: latest.name,
+      description: latest.description,
+      accentColor: latest.accentColor,
+      agents: [...latest.agents],
+    });
   });
   return tile;
 }
@@ -599,6 +613,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'room_updated': {
       rooms.set(msg.room.id, msg.room);
       addCustomRoomTile(msg.room); // removes old tile, adds updated
+      if (roomCreator.isVisible()) roomCreator.updateAgents(msg.room.agents as AgentPublicInfo[]);
       buildingFrame.classList.remove('frame-hidden');
       return;
     }

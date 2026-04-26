@@ -2,12 +2,21 @@ import * as vscode from 'vscode';
 
 // ===== Custom Room persistence =====
 
+export interface CustomAgentJson {
+  readonly id: string;
+  readonly name: string;
+  readonly tag: string;
+  readonly systemPrompt: string;
+  readonly visualPreset?: number; // 0–7 index into AGENT_PALETTES
+}
+
 export interface CustomRoomJson {
   readonly id: string;
   readonly name: string;
   readonly description: string;
   readonly accentColor: string;
   readonly createdAt: string;
+  readonly agents?: readonly CustomAgentJson[];
 }
 
 export async function loadCustomRooms(): Promise<CustomRoomJson[]> {
@@ -33,6 +42,7 @@ export async function loadCustomRooms(): Promise<CustomRoomJson[]> {
           description: raw.description ?? '',
           accentColor: raw.accentColor ?? '#9de0f0',
           createdAt: raw.createdAt ?? new Date().toISOString(),
+          agents: Array.isArray(raw.agents) ? raw.agents : [],
         });
       }
     } catch {

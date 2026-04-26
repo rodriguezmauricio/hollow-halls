@@ -34,6 +34,9 @@ export interface AgentPublicInfo {
   readonly name: string;
   readonly tag: string;
   readonly visual: AgentVisual;
+  /** Present only for custom (user-authored) agents — so the editor can pre-fill the form. */
+  readonly systemPrompt?: string;
+  readonly visualPreset?: number;
 }
 
 export interface RoomPublicInfo {
@@ -104,6 +107,18 @@ export type WebviewMsg =
       readonly description: string;
       readonly accentColor: string;
     }
+  | {
+      /** Create or update a custom agent within a custom room. */
+      readonly type: 'save_agent';
+      readonly roomId: string;
+      /** If id is present → update; absent → create. */
+      readonly agentId?: string;
+      readonly name: string;
+      readonly tag: string;
+      readonly systemPrompt: string;
+      readonly visualPreset: number;
+    }
+  | { readonly type: 'delete_agent'; readonly roomId: string; readonly agentId: string }
   | {
       /** Persist this room's Turn[] so the extension can restore it on next open.
        *  Sent after each agent_message_complete and on close_room. */
