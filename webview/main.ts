@@ -406,7 +406,11 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
 
     case 'error': {
       console.error('[hollow halls] error:', msg.message);
-      showErrorToast(msg.message);
+      if (oracleView.isVisible()) {
+        oracleView.showError(msg.message);
+      } else {
+        showErrorToast(msg.message);
+      }
       return;
     }
   }

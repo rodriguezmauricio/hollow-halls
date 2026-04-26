@@ -56,6 +56,15 @@ export class OracleView {
     }
   }
 
+  showError(message: string): void {
+    const status = this.el.querySelector<HTMLElement>('.oracle-status');
+    if (status) {
+      status.textContent = message;
+      status.classList.add('shown', 'oracle-status-error');
+    }
+    this.setFormDisabled(false);
+  }
+
   showDecision(decision: OracleDecision): void {
     const status = this.el.querySelector<HTMLElement>('.oracle-status');
     if (status) {
@@ -172,7 +181,7 @@ export class OracleView {
     clearTimeout(this.routeTimer);
     this.el.querySelector<HTMLElement>('.oracle-response')?.setAttribute('hidden', '');
     const status = this.el.querySelector<HTMLElement>('.oracle-status');
-    if (status) { status.textContent = ''; status.classList.remove('shown'); }
+    if (status) { status.textContent = ''; status.classList.remove('shown', 'oracle-status-error'); }
     const input = this.el.querySelector<HTMLTextAreaElement>('.oracle-input');
     if (input) { input.value = ''; input.disabled = false; }
     const submit = this.el.querySelector<HTMLButtonElement>('.oracle-submit');

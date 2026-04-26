@@ -1086,6 +1086,7 @@ body {
   opacity: 0; transition: opacity 0.2s ease;
 }
 .oracle-status.shown { opacity: 1; }
+.oracle-status.oracle-status-error { color: var(--sec); }
 
 /* body — centered glyph + label */
 .oracle-body {
