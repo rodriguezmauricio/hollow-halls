@@ -242,6 +242,12 @@ function wireMessages(
         case 'oracle_consult':
           await handleOracleConsult(p, context, raw.prompt);
           return;
+
+        case 'open_file': {
+          const uri = vscode.Uri.file(raw.path);
+          vscode.commands.executeCommand('vscode.open', uri);
+          return;
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

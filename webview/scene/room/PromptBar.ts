@@ -5,11 +5,14 @@ export interface PromptBarCallbacks {
   readonly initialMode?: PickerMode;
 }
 
+const THINK_LEVELS: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
+
 export class PromptBar {
   readonly el: HTMLDivElement;
   private chipRow: HTMLDivElement;
-  private modeRowEl: HTMLDivElement;
-  private thinkRowEl: HTMLDivElement;
+  private modeGroupEl: HTMLDivElement;
+  private thinkRange: HTMLInputElement;
+  private thinkValEl: HTMLSpanElement;
   private textarea: HTMLTextAreaElement;
   private sendBtn: HTMLButtonElement;
   private statusEl: HTMLSpanElement;
@@ -26,9 +29,13 @@ export class PromptBar {
     this.el.className = 'prompt-bar';
     this.el.innerHTML = `
       <div class="prompt-chip-row"></div>
-      <div class="prompt-modes">
-        <div class="prompt-mode-row"></div>
-        <div class="prompt-think-row"></div>
+      <div class="prompt-controls">
+        <div class="pmode-group"></div>
+        <div class="prompt-ctrl-sep" aria-hidden="true"></div>
+        <div class="pthink-group">
+          <input type="range" class="think-range" min="0" max="3" step="1" value="0">
+          <span class="think-val">OFF</span>
+        </div>
       </div>
       <div class="prompt-input-row">
         <textarea class="prompt-field" rows="2" placeholder="Speak your intent. Ctrl/⌘+Enter to commune."></textarea>
@@ -38,14 +45,20 @@ export class PromptBar {
     `;
 
     this.chipRow = this.el.querySelector('.prompt-chip-row') as HTMLDivElement;
-    this.modeRowEl = this.el.querySelector('.prompt-mode-row') as HTMLDivElement;
-    this.thinkRowEl = this.el.querySelector('.prompt-think-row') as HTMLDivElement;
+    this.modeGroupEl = this.el.querySelector('.pmode-group') as HTMLDivElement;
+    this.thinkRange = this.el.querySelector('.think-range') as HTMLInputElement;
+    this.thinkValEl = this.el.querySelector('.think-val') as HTMLSpanElement;
     this.textarea = this.el.querySelector('.prompt-field') as HTMLTextAreaElement;
     this.sendBtn = this.el.querySelector('.send') as HTMLButtonElement;
     this.statusEl = this.el.querySelector('.prompt-status-text') as HTMLSpanElement;
 
+    this.thinkRange.addEventListener('input', () => {
+      this.pickerThinking = THINK_LEVELS[Number(this.thinkRange.value)] ?? 'off';
+      this.thinkValEl.textContent = this.pickerThinking.toUpperCase();
+      this.updateState();
+    });
+
     this.buildModeButtons();
-    this.buildThinkButtons();
 
     this.sendBtn.addEventListener('click', () => this.submit());
     this.textarea.addEventListener('keydown', (e) => {
@@ -68,47 +81,32 @@ export class PromptBar {
   }
 
   private buildModeButtons(): void {
-    const defs: { mode: PickerMode; label: string }[] = [
-      { mode: 'plan', label: 'PLAN' },
-      { mode: 'acceptEdits', label: 'EDIT' },
-      { mode: 'bypassPermissions', label: 'BYPASS' },
+    const defs: { mode: PickerMode; label: string; hint: string }[] = [
+      { mode: 'plan',               label: 'PLAN',   hint: 'writes a plan — no file changes' },
+      { mode: 'acceptEdits',        label: 'EDIT',   hint: 'edits files — asks before each change' },
+      { mode: 'bypassPermissions',  label: 'BYPASS', hint: 'full autonomy — no confirmations' },
     ];
-    this.modeRowEl.innerHTML = '';
-    for (const { mode, label } of defs) {
+    this.modeGroupEl.innerHTML = '';
+    for (const { mode, label, hint } of defs) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pmode-btn' + (this.pickerMode === mode ? ' selected' : '');
       btn.textContent = label;
+      btn.title = hint;
       btn.addEventListener('click', () => {
         this.pickerMode = mode;
-        this.modeRowEl.querySelectorAll('.pmode-btn').forEach((b) =>
+        this.modeGroupEl.querySelectorAll('.pmode-btn').forEach((b) =>
           b.classList.toggle('selected', b === btn),
         );
+        this.updateState();
       });
-      this.modeRowEl.appendChild(btn);
-    }
-  }
-
-  private buildThinkButtons(): void {
-    const defs: { level: ThinkingLevel; label: string }[] = [
-      { level: 'off', label: 'OFF' },
-      { level: 'low', label: 'LOW' },
-      { level: 'medium', label: 'MED' },
-      { level: 'high', label: 'HIGH' },
-    ];
-    this.thinkRowEl.innerHTML = '';
-    for (const { level, label } of defs) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pthink-btn' + (this.pickerThinking === level ? ' selected' : '');
-      btn.textContent = label;
-      btn.addEventListener('click', () => {
-        this.pickerThinking = level;
-        this.thinkRowEl.querySelectorAll('.pthink-btn').forEach((b) =>
-          b.classList.toggle('selected', b === btn),
-        );
+      btn.addEventListener('mouseenter', () => {
+        if (!this.busy) this.statusEl.textContent = hint;
       });
-      this.thinkRowEl.appendChild(btn);
+      btn.addEventListener('mouseleave', () => {
+        if (!this.busy) this.updateState();
+      });
+      this.modeGroupEl.appendChild(btn);
     }
   }
 
@@ -195,7 +193,17 @@ export class PromptBar {
     const hasText = this.textarea.value.trim().length > 0;
     const hasAgents = this.picked.size > 0;
     this.sendBtn.disabled = !hasText || !hasAgents;
-    if (!hasAgents) {
+
+    // Bypass warning overrides normal status; always visible when active.
+    const bypass = this.pickerMode === 'bypassPermissions';
+    this.sendBtn.classList.toggle('send-bypass', bypass);
+
+    if (bypass) {
+      const extra = this.pickerThinking !== 'off' ? ' · extended thinking' : '';
+      this.statusEl.textContent = 'bypass — no permission checks' + extra;
+    } else if (this.pickerThinking !== 'off') {
+      this.statusEl.textContent = 'extended thinking — higher token cost';
+    } else if (!hasAgents) {
       this.statusEl.textContent = 'no agents selected';
     } else if (!hasText) {
       this.statusEl.textContent = '';

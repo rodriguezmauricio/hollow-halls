@@ -1,11 +1,139 @@
 # UX_REVIEW.md — End-to-End Walkthrough
 
-Code audit, 2026-04-26. All 11 message types are wired. Core infrastructure
-(streaming, 3 providers, plan-mode + BUILD, Great Hall meeting state machine,
-Oracle routing, cost tracking) is complete and production-grade. The gaps are
-entirely in the five new product requirements — no UI for them exists yet.
+Code audit, 2026-04-26 (updated same day with second pass). All 11 message
+types are wired. Core infrastructure (streaming, 3 providers, plan-mode +
+BUILD, Great Hall meeting state machine, Oracle routing, cost tracking) is
+complete and production-grade.
 
-Each item below: **severity · flow · what's wrong · fix sketch**.
+Two classes of gaps found: **(A) immediate usability problems in existing UI**
+(new findings from second code read, below) and **(B) missing product surfaces**
+(five new product requirements, further below).
+
+Each item: **severity · flow · what's wrong · fix sketch**.
+
+---
+
+## IMMEDIATE — existing surfaces that confuse today
+
+These are problems in the code that is already live. A user sitting down with
+the extension as-shipped right now will hit each of these.
+
+### I1 · PLAN / EDIT / BYPASS buttons have zero explanation *(blocker)*
+Flow: user enters any room or the Great Hall picker.  
+Problem: three buttons labelled PLAN, EDIT, BYPASS appear near the textarea.
+There is no tooltip, no label, no description of what each does. PLAN = write
+only; EDIT = write + file changes; BYPASS = no permission checks. A first-time
+user has no idea.  
+Fix: on hover, show a one-line hint in the `.prompt-status` area:
+- PLAN → `writes a plan — no file changes`
+- EDIT → `edits files — asks before each change`
+- BYPASS → `full autonomy — no confirmations`
+
+### I2 · BYPASS mode fires with no warning *(blocker)*
+Flow: user accidentally selects BYPASS and sends a prompt.  
+Problem: BYPASS grants Claude unrestricted file-system access. There is no
+visual distinction from the other modes, no confirmation, no cost note.  
+Fix: when BYPASS is selected, tint the send-button border red/amber and show
+a persistent status line `bypass active — no permission checks`. No modal
+needed; the visual difference is enough.
+
+### I3 · Oracle auto-routes with no cancel — user is trapped *(blocker)*
+Flow: user consults Oracle; Oracle picks a room.  
+Problem: `OracleView.ts:98-104` fires `setTimeout(1600ms)` and navigates the
+user automatically. No cancel, no way to change their mind.  
+Fix (was F4 on old list): replace the timer with a countdown progress bar + a
+CANCEL button. Three seconds minimum. Pressing CANCEL or Escape clears the
+timer and stays on the Oracle screen.
+
+### I4 · No first-run explanation of anything *(blocker)*
+Flow: brand-new user opens the extension for the first time.  
+Problem: a dark floor plan with room tiles renders. There is no hint about what
+the Oracle does, what the Great Hall is, what PLAN mode means, or that these
+are AI agents. The "ENTER ›" hover hints exist but explain nothing about purpose.  
+Fix: on the first `init` (detect via `sessionTotalUSD === 0` and no stored
+dismiss flag), show a brief overlay card on the floor plan. Three sentences max:
+"Each room has AI agents for a specific discipline. Ask the Oracle what to do —
+it routes you to the right room. Press Escape to dismiss." Store dismissed state
+in `vscode.getState()`.
+
+### I5 · Oracle: Enter submits; rooms use Ctrl+Enter — inconsistency *(friction)*
+Flow: user types a multi-line question in the Oracle and presses Enter to
+add a line break.  
+Problem: `OracleView.ts:172-176` submits on bare `Enter` (no modifier). Every
+other send target (rooms, Great Hall) requires `Ctrl/⌘+Enter`. A user writing
+a long question will accidentally submit.  
+Fix: unify on `Ctrl/⌘+Enter` everywhere. Update Oracle placeholder to:
+`Ask the Oracle… (Ctrl+Enter to send)`.
+
+### I6 · Stage resizer has no visual affordance *(friction)*
+Flow: user wants to resize the scene vs transcript split.  
+Problem: the `.room-resizer` / `.gh-resizer` div is invisible — no dots, no
+line, no cursor hint visible before hover. Most users won't find it.  
+Fix: render a centred row of 3–5 small dots (SVG or CSS `::before`) inside the
+resizer div using `--stone-lo` color. This is the universally understood
+drag-handle pattern.
+
+### I7 · BUILD button appears with no explanation *(friction)*
+Flow: plan-mode turn completes; a BUILD button appears on the agent card.  
+Problem: "BUILD" means nothing to a user who hasn't read the docs. No tooltip,
+no label explaining it re-runs the same prompt in acceptEdits mode.  
+Fix: add a `title` attribute `re-runs this plan — Claude will now edit files`
+and show that text in the prompt-status area on hover.
+
+### I8 · Plan-saved badge and transcript path are plain text, not links *(friction)*
+Flow: plan saved → `plan saved · .hollow/plans/...md` appears. Meeting ends →
+`transcript: .hollow/meetings/...md` appears.  
+Problem: both are static text. Clicking does nothing. The file is right there.  
+Fix: wrap in a `<button>` that sends a VS Code `vscode.open` command for the
+path. Label it `open ↗`.
+
+### I9 · Great Hall roster shows no room of origin *(friction)*
+Flow: Great Hall picker opens with agents from all 6 rooms.  
+Problem: agent cards show name + tag + "active" but no room name. With 12
+agents visible, the user cannot tell which agent belongs to which room.
+`renderRoster()` already has `group.roomName` — it's just not rendered.  
+Fix: add a group header (`div.gh-roster-group-label`) above each room's agents,
+text = `group.roomName` in the room's accent color.
+
+### I10 · No confirmation before CANCEL MEETING *(friction)*
+Flow: user clicks CANCEL MEETING mid-session.  
+Problem: `onCancelMeeting` fires immediately. A long valuable meeting is gone.  
+Fix: on first click, change button text to `CANCEL? CLICK AGAIN` and set a
+3-second timeout that resets it. Second click within the window confirms.
+
+### I11 · Tool-use chip symbols `[▸]` and `[↩]` are cryptic *(friction)*
+Flow: agent runs a tool during acceptEdits.  
+Problem: `[▸] bash_20250124 · executing: ls -la` — the `▸` symbol conveys
+nothing without context. `[↩]` for result is equally opaque.  
+Fix: replace with text: `[run]` for start, `[done]` for success, `[err]` for
+error. Same compact layout, no symbol literacy required.
+
+### I12 · Thinking slider has no cost hint *(friction)*
+Flow: user slides thinking level to HIGH.  
+Problem: HIGH fires extended thinking with maximum budget tokens — can cost
+5–10× a normal response. No warning anywhere in the UI.  
+Fix: when thinking > OFF, show a one-line hint in `.prompt-status`:
+`extended thinking — higher token cost`.
+
+### I13 · ESC shortcut is undiscoverable *(nit)*
+Flow: user wants to leave a room or the Oracle quickly.  
+Problem: `main.ts` wires Escape to close any open view — a great shortcut
+nobody knows about because it's not shown anywhere.  
+Fix: add `esc` in small `--stone-lo` text next to every LEAVE button.
+
+### I14 · Error toast is not dismissible *(nit)*
+Flow: an error toast appears.  
+Problem: auto-dismiss in 5.5 s; no manual close button. Can't copy the text.  
+Fix: add an `×` button. Keep auto-dismiss.
+
+### I15 · Cost badge format is dense *(nit)*
+Flow: agent turn completes; cost badge appears in the transcript footer.  
+Problem: `claude-code · claude-sonnet-4-6 · 1234→456 tok · $0.023` reads like
+a log line, not a user-facing label.  
+Fix: `claude sonnet · 1.7k tok · $0.02`. Short provider name, merged token count
+with K suffix, shorter cost format.
+
+---
 
 ---
 
@@ -218,18 +346,29 @@ scratch. Offer "restore previous attendees" as a quick affordance.
 
 ## Recommended Phase 2 order
 
-Work one item per session in this order:
+Work one item per session in this order. `I*` = immediate code issues (above);
+`B*`/`F*`/`N*` = product-surface gaps (below).
 
-1. **B6** — restore tool-chip-error style (30 min; isolated CSS fix)
-2. **F5** — Oracle error recovery (1 hour; isolated OracleView change)
-3. **F8** — maxTokens in AgentManager (1 hour; Settings + AgentManager + ProviderFactory)
-4. **F2** — mode pill authoritative + rename (2 hours; protocol + RoomView + GreatHallView)
-5. **F4** — Oracle redirect timer → explicit GO button (1 hour; OracleView only)
-6. **B5** — in-product explanations (one surface per session, starting with Oracle + BUILD)
-7. **F1** — first-run onboarding + provider status badge (2 hours)
-8. **B3** — live model picker (large; needs sub-plan)
-9. **B4** — Oracle + Common deactivation (medium)
-10. **B1 + B2** — custom rooms + agents (largest; needs sub-plan)
-11. **F6** — single-room transcript persistence (medium)
-12. **F7** — Great Hall rejoin affordance (small)
-13. **F9** + **F10** — no-workspace + provider-detection UX (small)
+| # | ID | Item | Size |
+|---|---|---|---|
+| 1 | I1 | Mode button tooltips (PLAN/EDIT/BYPASS) | 30 min |
+| 2 | I2 | BYPASS visual warning | 30 min |
+| 3 | B6 | Restore tool-chip-error style | 30 min |
+| 4 | I3 | Oracle countdown + cancel (was F4) | 1 hr |
+| 5 | F5 | Oracle error recovery + form re-enable | 1 hr |
+| 6 | I5 | Unify Enter vs Ctrl+Enter | 30 min |
+| 7 | I4 | First-run overlay card | 1 hr |
+| 8 | F8 | maxTokens default in AgentManager | 1 hr |
+| 9 | I9 | GH roster room-name group headers | 30 min |
+| 10 | I6 | Stage resizer visual affordance | 30 min |
+| 11 | I10 | CANCEL MEETING double-confirm | 30 min |
+| 12 | I7 | BUILD button explanation | 30 min |
+| 13 | I8 | Plan path + transcript path clickable | 1 hr |
+| 14 | F7 | Great Hall "meeting running" rejoin label | 30 min |
+| 15 | B5 | In-product explanations (Oracle, Great Hall, cost) | 2 hr |
+| 16 | F1 | Floor plan provider status badge | 1 hr |
+| 17 | B3 | Live model picker | sub-plan |
+| 18 | B4 | Oracle + Common deactivation | sub-plan |
+| 19 | B1+B2 | Custom rooms + agents | sub-plan |
+| 20 | F6 | Single-room transcript persistence | 2 hr |
+| 21 | F9+F10 | No-workspace + provider-detection UX | 1 hr |

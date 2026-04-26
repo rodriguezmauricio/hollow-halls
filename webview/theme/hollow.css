@@ -539,53 +539,74 @@ body {
 .turn-build:active:not(:disabled) { transform: translateY(1px); }
 .turn-build:disabled { opacity: 0.45; cursor: default; }
 
-/* Inline permission-mode + thinking button rows (prompt bar + great hall picker) */
-.prompt-modes {
+/* Single-row controls: [PLAN][EDIT][BYPASS] | ──●── MED */
+.prompt-controls {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 6px;
   padding: 6px 0 8px;
 }
-.prompt-mode-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.pmode-group {
+  display: flex;
   gap: 3px;
+  flex-shrink: 0;
 }
-.prompt-think-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 3px;
-}
-.pmode-btn, .pthink-btn {
+.pmode-btn {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px; letter-spacing: 1.5px;
-  padding: 5px 0;
+  padding: 5px 8px;
   background: transparent;
   border: 1px solid var(--stone-lo);
   color: var(--stone-hi);
   cursor: pointer;
-  text-align: center;
   transition: border-color 0.12s, color 0.12s;
 }
-.pmode-btn:hover:not(.selected), .pthink-btn:hover:not(.selected) {
-  border-color: var(--stone);
-  color: var(--bone-dim);
+.pmode-btn:hover:not(.selected) { border-color: var(--stone); color: var(--bone-dim); }
+.pmode-btn.selected { border-color: var(--accent, var(--bone)); color: var(--accent, var(--bone)); }
+.prompt-ctrl-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--stone-lo);
+  flex-shrink: 0;
 }
-.pmode-btn.selected {
-  border-color: var(--accent, var(--bone));
-  color: var(--accent, var(--bone));
-}
-.pthink-btn.selected {
-  border-color: var(--stone-hi);
-  color: var(--bone);
-}
-/* Great Hall uses same rows inside .gh-modes */
-.gh-modes {
+.pthink-group {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin: 8px 0;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
+.think-range {
+  flex: 1;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--stone-lo);
+  outline: none;
+  cursor: pointer;
+}
+.think-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--stone-hi);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.think-range:hover::-webkit-slider-thumb,
+.think-range:focus::-webkit-slider-thumb { background: var(--bone); }
+.think-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: 1.5px;
+  color: var(--stone-hi);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+/* Great Hall reuses .prompt-controls inside .gh-modes */
+.gh-modes { margin: 8px 0; padding: 0; }
 .caret {
   display: inline-block;
   width: 7px; height: 1em;
@@ -1028,14 +1049,21 @@ body {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   vertical-align: bottom;
 }
-.gh-summary-path code {
+button.gh-summary-path-btn {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   color: var(--bone);
   background: rgba(242,234,215,0.05);
-  padding: 2px 6px;
-  border: 1px solid rgba(242,234,215,0.08);
+  padding: 2px 8px;
+  border: 1px solid rgba(242,234,215,0.12);
+  border-radius: 2px;
+  cursor: pointer;
+  max-width: 540px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: inline-block; vertical-align: bottom;
+  transition: background 0.15s, color 0.15s;
 }
+button.gh-summary-path-btn:hover { background: rgba(242,234,215,0.12); color: var(--bone); }
 .gh-summary-warn { color: var(--sec); }
 
 @media (max-width: 900px) {
@@ -1189,3 +1217,104 @@ body {
   background: rgba(157,224,240,0.08);
 }
 .oracle-submit:disabled { opacity: 0.35; cursor: default; }
+
+/* Oracle countdown + cancel (I3) */
+.oracle-countdown {
+  margin: 14px 0 10px;
+  height: 2px;
+  background: rgba(157,224,240,0.12);
+  overflow: hidden;
+  border-radius: 2px;
+}
+.oracle-countdown-bar {
+  height: 100%;
+  background: #9de0f0;
+  transform-origin: left;
+  animation: countdown-drain 3s linear forwards;
+}
+@keyframes countdown-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.oracle-cancel {
+  display: block; margin: 0 auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 2px;
+  color: rgba(157,224,240,0.5); background: transparent;
+  border: 1px solid rgba(157,224,240,0.2);
+  padding: 5px 12px; cursor: pointer; text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
+}
+.oracle-cancel:hover { color: #9de0f0; border-color: rgba(157,224,240,0.5); }
+
+/* Oracle subtext (I5 — "what this does") */
+.oracle-subtext {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  color: rgba(157,224,240,0.35); text-align: center; margin-top: -8px;
+}
+
+/* Bypass warning on send button (I2) */
+.send.send-bypass { border-color: var(--sec) !important; color: var(--sec) !important; }
+
+/* First-run overlay (I4) */
+.first-run-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(7,5,16,0.72);
+  backdrop-filter: blur(3px);
+}
+.first-run-card {
+  max-width: 420px; width: 90%;
+  border: 1px solid rgba(242,234,215,0.15);
+  background: #0e0b1a;
+  padding: 28px 32px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.first-run-card h2 {
+  font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 5px;
+  color: var(--bone); text-transform: uppercase;
+}
+.first-run-card p {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.7;
+  color: var(--bone-dim);
+}
+.first-run-dismiss {
+  align-self: flex-end;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px;
+  color: var(--bone-dim); background: transparent;
+  border: 1px solid rgba(242,234,215,0.2);
+  padding: 8px 16px; cursor: pointer; text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
+}
+.first-run-dismiss:hover { color: var(--bone); border-color: var(--bone); }
+
+/* ESC hint near LEAVE buttons (I13) */
+.leave-esc {
+  font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 1.5px;
+  color: var(--stone-hi); opacity: 0.6; margin-left: 6px;
+}
+
+/* Plan-path as clickable button (I8) */
+button.turn-plan-path {
+  background: transparent; border: none; cursor: pointer;
+  text-align: left; padding: 0;
+}
+button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
+
+/* BUILD button hint (I7) */
+.turn-build-hint {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.5px;
+  color: var(--bone-ghost); opacity: 0.65; margin-top: 2px;
+}
+
+/* Great Hall roster group labels (I9) */
+.gh-roster-group-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 2px;
+  color: var(--card-accent, var(--bone-dim)); opacity: 0.7;
+  text-transform: uppercase; padding: 8px 0 4px;
+  border-top: 1px solid rgba(242,234,215,0.06); margin-top: 4px;
+}
+.gh-roster-group-label:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.gh-card-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+
+/* GH rejoin label (F7) */
+.room-rejoin-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: 1px;
+  fill: var(--bone-dim); opacity: 0.75;
+}

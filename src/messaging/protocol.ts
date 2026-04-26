@@ -88,7 +88,8 @@ export type WebviewMsg =
     }
   | { readonly type: 'cancel_meeting'; readonly meetingId: string }
   | { readonly type: 'cancel_room_stream'; readonly roomId: string }
-  | { readonly type: 'oracle_consult'; readonly prompt: string };
+  | { readonly type: 'oracle_consult'; readonly prompt: string }
+  | { readonly type: 'open_file'; readonly path: string };
 
 export type ExtensionMsg =
   | {

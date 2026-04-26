@@ -169,12 +169,18 @@ export class Transcript {
         btn.type = 'button';
         btn.className = 'turn-build';
         btn.textContent = label;
+        btn.title = 'Re-runs this plan in acceptEdits mode — Claude will now edit files';
+        const hint = document.createElement('div');
+        hint.className = 'turn-build-hint';
+        hint.textContent = 're-runs as acceptEdits — Claude will edit files';
         btn.addEventListener('click', () => {
           btn.disabled = true;
           btn.textContent = '…building';
+          hint.remove();
           onClick();
         });
         footer.appendChild(btn);
+        footer.appendChild(hint);
         return;
       }
     }
@@ -188,10 +194,15 @@ export class Transcript {
         t.planPath = path;
         const el = this.turnEls.get(t);
         if (!el) return;
-        let badge = el.querySelector<HTMLElement>('.turn-plan-path');
+        let badge = el.querySelector<HTMLButtonElement>('button.turn-plan-path');
         if (!badge) {
-          badge = document.createElement('div');
+          badge = document.createElement('button');
+          badge.type = 'button';
           badge.className = 'turn-plan-path';
+          badge.title = 'open plan file';
+          badge.addEventListener('click', () =>
+            document.dispatchEvent(new CustomEvent('hollow:open-file', { detail: path })),
+          );
           (el.querySelector('.turn-footer') ?? el).appendChild(badge);
         }
         badge.textContent = `plan saved · ${path}`;
@@ -274,9 +285,15 @@ export class Transcript {
 
     if (turn.cost) renderCostBadge(li, turn.cost);
     if (turn.planPath) {
-      const badge = document.createElement('div');
+      const path = turn.planPath;
+      const badge = document.createElement('button');
+      badge.type = 'button';
       badge.className = 'turn-plan-path';
-      badge.textContent = `plan saved · ${turn.planPath}`;
+      badge.title = 'open plan file';
+      badge.textContent = `plan saved · ${path}`;
+      badge.addEventListener('click', () =>
+        document.dispatchEvent(new CustomEvent('hollow:open-file', { detail: path })),
+      );
       (li.querySelector('.turn-footer') as HTMLElement).appendChild(badge);
     }
     return li;
@@ -330,7 +347,7 @@ function makeCaret(): HTMLSpanElement {
 function makeToolChip(turn: TurnToolUse): HTMLElement {
   const chip = document.createElement('div');
   chip.className = 'tool-chip' + (turn.isError ? ' tool-chip-error' : '');
-  const prefix = turn.isError ? '[✕]' : turn.phase === 'start' ? '[▸]' : '[↩]';
+  const prefix = turn.isError ? '[err]' : turn.phase === 'start' ? '[run]' : '[done]';
   const summary = turn.summary && turn.summary.length > 60
     ? turn.summary.slice(0, 57) + '…'
     : turn.summary;
@@ -348,12 +365,15 @@ function renderCostBadge(li: HTMLLIElement, cost: TurnAgentCost): void {
     badge.className = 'turn-cost';
     (li.querySelector('.turn-footer') ?? li).appendChild(badge);
   }
-  badge.textContent = [
-    cost.provider,
-    cost.model,
-    `${cost.inputTokens}→${cost.outputTokens} tok`,
-    formatCostUSD(cost.thisStreamUSD),
-  ].join(' · ');
+  const providerShort = cost.provider === 'claude-code' ? 'claude cli'
+    : cost.provider === 'anthropic' ? 'anthropic' : cost.provider;
+  const modelShort = cost.model
+    .replace(/^claude-/, '')
+    .replace(/-\d{8}$/, '')
+    .replace(/-\d{8}00\d*$/, '');
+  const totalTok = cost.inputTokens + cost.outputTokens;
+  const tokStr = totalTok >= 1000 ? `${(totalTok / 1000).toFixed(1)}k tok` : `${totalTok} tok`;
+  badge.textContent = [providerShort, modelShort, tokStr, formatCostUSD(cost.thisStreamUSD)].join(' · ');
 }
 
 function formatTime(ts: number): string {

@@ -195,12 +195,18 @@ svg.querySelectorAll<SVGGElement>('.room').forEach((g) => {
   });
 });
 
+// Open-file events dispatched by plan-path / transcript-path buttons in the webview.
+document.addEventListener('hollow:open-file', (e) => {
+  send({ type: 'open_file', path: (e as CustomEvent<string>).detail });
+});
+
 window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
   const msg = e.data;
   switch (msg.type) {
     case 'init':
       msg.rooms.forEach((r) => rooms.set(r.id, r));
       markLiveRooms(svg, rooms);
+      showFirstRunOverlay();
       return;
 
     case 'room_opened': {
@@ -360,7 +366,29 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       if (msg.roomId === 'common') {
         greatHall.setBusy(msg.busy);
         const g = svg.querySelector<SVGGElement>('.room.common');
-        if (g) g.classList.toggle('room-busy', msg.busy);
+        if (g) {
+          g.classList.toggle('room-busy', msg.busy);
+          // Show/hide rejoin label on the floor-plan tile.
+          let rejoinEl = g.querySelector<SVGTextElement>('.room-rejoin-text');
+          if (msg.busy) {
+            if (!rejoinEl) {
+              rejoinEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              rejoinEl.classList.add('room-rejoin-text');
+              rejoinEl.setAttribute('x', '590');
+              rejoinEl.setAttribute('y', '60');
+              rejoinEl.setAttribute('text-anchor', 'middle');
+              rejoinEl.setAttribute('font-family', 'IBM Plex Mono, monospace');
+              rejoinEl.setAttribute('font-size', '7');
+              rejoinEl.setAttribute('fill', '#f2ead7');
+              rejoinEl.setAttribute('opacity', '0.65');
+              rejoinEl.setAttribute('letter-spacing', '1');
+              rejoinEl.textContent = 'MEETING IN PROGRESS — click to rejoin';
+              g.appendChild(rejoinEl);
+            }
+          } else {
+            rejoinEl?.remove();
+          }
+        }
         return;
       }
       const st = stateFor(msg.roomId);
@@ -434,9 +462,40 @@ function markLiveRooms(svg: SVGSVGElement, live: Map<string, RoomPublicInfo>): v
 function showErrorToast(message: string): void {
   const toast = document.createElement('div');
   toast.className = 'error-toast';
-  toast.textContent = message;
+  const txt = document.createElement('span');
+  txt.textContent = message;
+  const close = document.createElement('button');
+  close.className = 'error-toast-close';
+  close.textContent = '×';
+  close.setAttribute('aria-label', 'dismiss');
+  close.addEventListener('click', () => toast.remove());
+  toast.appendChild(txt);
+  toast.appendChild(close);
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 5500);
+  setTimeout(() => { if (toast.isConnected) toast.remove(); }, 5500);
+}
+
+function showFirstRunOverlay(): void {
+  const state = vscode.getState() as Record<string, unknown> | null;
+  if (state?.firstRunDismissed) return;
+  if (document.querySelector('.first-run-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'first-run-overlay';
+  overlay.innerHTML = `
+    <div class="first-run-card">
+      <h2>The Hollow Halls</h2>
+      <p>Each room holds AI agents for a specific discipline — design, code, security, and more.</p>
+      <p>Start with <strong>The Oracle</strong> if you're not sure where to go. Describe what you need and it will route you to the right room.</p>
+      <p>Permission modes: <strong>PLAN</strong> writes a plan only, <strong>EDIT</strong> edits files with your approval, <strong>BYPASS</strong> acts autonomously.</p>
+      <button class="first-run-dismiss" type="button">GOT IT</button>
+    </div>
+  `;
+  overlay.querySelector('.first-run-dismiss')!.addEventListener('click', () => {
+    overlay.remove();
+    vscode.setState({ ...(vscode.getState() as object ?? {}), firstRunDismissed: true });
+  });
+  document.body.appendChild(overlay);
 }
 
 /** Briefly pulse the Oracle-target accent on a room's SVG group. */

@@ -171,10 +171,22 @@ export class GreatHallView {
     }
   }
 
+  private wireThinkingSlider(): void {
+    const thinkRange = this.el.querySelector<HTMLInputElement>('.think-range');
+    const thinkVal = this.el.querySelector<HTMLSpanElement>('.think-val');
+    if (!thinkRange || !thinkVal) return;
+    const levels: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
+    thinkRange.value = String(levels.indexOf(this.pickerThinking));
+    thinkVal.textContent = this.pickerThinking.toUpperCase();
+    thinkRange.addEventListener('input', () => {
+      this.pickerThinking = levels[Number(thinkRange.value)] ?? 'off';
+      thinkVal.textContent = this.pickerThinking.toUpperCase();
+    });
+  }
+
   private buildGHModeButtons(): void {
-    const modeRow = this.el.querySelector<HTMLElement>('.prompt-mode-row');
-    const thinkRow = this.el.querySelector<HTMLElement>('.prompt-think-row');
-    if (!modeRow || !thinkRow) return;
+    const modeRow = this.el.querySelector<HTMLElement>('.pmode-group');
+    if (!modeRow) return;
 
     const modeDefs: { mode: PickerMode; label: string }[] = [
       { mode: 'plan', label: 'PLAN' },
@@ -194,24 +206,6 @@ export class GreatHallView {
       modeRow.appendChild(btn);
     }
 
-    const thinkDefs: { level: ThinkingLevel; label: string }[] = [
-      { level: 'off', label: 'OFF' },
-      { level: 'low', label: 'LOW' },
-      { level: 'medium', label: 'MED' },
-      { level: 'high', label: 'HIGH' },
-    ];
-    thinkRow.innerHTML = '';
-    for (const { level, label } of thinkDefs) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pthink-btn' + (this.pickerThinking === level ? ' selected' : '');
-      btn.textContent = label;
-      btn.addEventListener('click', () => {
-        this.pickerThinking = level;
-        thinkRow.querySelectorAll('.pthink-btn').forEach((b) => b.classList.toggle('selected', b === btn));
-      });
-      thinkRow.appendChild(btn);
-    }
   }
 
   setBusy(busy: boolean): void {
@@ -236,6 +230,13 @@ export class GreatHallView {
       footer.innerHTML = summaryFooterHtml(summary);
       footer.dataset.reason = summary.reason;
       footer.classList.add('shown');
+      const pathBtn = footer.querySelector<HTMLButtonElement>('button[data-open-path]');
+      if (pathBtn) {
+        const p = pathBtn.dataset.openPath!;
+        pathBtn.addEventListener('click', () =>
+          document.dispatchEvent(new CustomEvent('hollow:open-file', { detail: p })),
+        );
+      }
     }
     const controls = this.el.querySelector<HTMLElement>('.gh-controls');
     if (controls) {
@@ -251,7 +252,7 @@ export class GreatHallView {
     this.runTeardown();
     this.el.innerHTML = `
       <header class="gh-head">
-        <button class="gh-leave" type="button" aria-label="leave hall">&larr; LEAVE</button>
+        <button class="gh-leave" type="button" aria-label="leave hall">&larr; LEAVE <span class="leave-esc">esc</span></button>
         <div class="gh-title">
           <h2>THE GREAT HALL</h2>
           <p>choose who attends. the speaker will call each in turn.</p>
@@ -264,9 +265,13 @@ export class GreatHallView {
           <label class="gh-task-label" for="gh-task-input">the convening's task</label>
           <textarea id="gh-task-input" class="gh-task-input" rows="3"
             placeholder="Design a passwordless login flow. Plan a launch. Triage an incident. Speak it as you'd speak it to a team."></textarea>
-          <div class="gh-modes">
-            <div class="prompt-mode-row"></div>
-            <div class="prompt-think-row"></div>
+          <div class="gh-modes prompt-controls">
+            <div class="pmode-group"></div>
+            <div class="prompt-ctrl-sep" aria-hidden="true"></div>
+            <div class="pthink-group">
+              <input type="range" class="think-range" min="0" max="3" step="1" value="0">
+              <span class="think-val">OFF</span>
+            </div>
           </div>
           <div class="gh-task-row">
             <span class="gh-task-status"></span>
@@ -278,6 +283,7 @@ export class GreatHallView {
 
     this.wireLeaveButton();
     this.buildGHModeButtons();
+    this.wireThinkingSlider();
 
     const rosterEl = this.el.querySelector('.gh-roster') as HTMLElement;
     rosterEl.appendChild(this.renderRoster());
@@ -307,9 +313,18 @@ export class GreatHallView {
   }
 
   private renderRoster(): HTMLElement {
-    const grid = document.createElement('div');
-    grid.className = 'gh-card-grid';
+    const container = document.createElement('div');
+    container.className = 'gh-card-grid';
     this.roster.forEach((group) => {
+      const groupLabel = document.createElement('div');
+      groupLabel.className = 'gh-roster-group-label';
+      groupLabel.style.setProperty('--card-accent', group.accentColor);
+      groupLabel.textContent = group.roomName;
+      container.appendChild(groupLabel);
+
+      const row = document.createElement('div');
+      row.className = 'gh-card-row';
+
       group.agents.forEach((a) => {
         const key = `${group.roomId}:${a.id}`;
         const card = document.createElement('button');
@@ -357,10 +372,11 @@ export class GreatHallView {
           const input = this.el.querySelector('.gh-task-input') as HTMLTextAreaElement;
           input.dispatchEvent(new Event('input'));
         });
-        grid.appendChild(card);
+        row.appendChild(card);
       });
+      container.appendChild(row);
     });
-    return grid;
+    return container;
   }
 
   private submitPicker(task: string): void {
@@ -378,7 +394,7 @@ export class GreatHallView {
     const agentsMap = new Map(this.attending.map((a) => [a.agent.id, a.agent] as const));
     this.el.innerHTML = `
       <header class="gh-head gh-head-meeting">
-        <button class="gh-leave" type="button" aria-label="leave but keep meeting running">&larr; LEAVE</button>
+        <button class="gh-leave" type="button" aria-label="leave but keep meeting running">&larr; LEAVE <span class="leave-esc">esc</span></button>
         <div class="gh-title">
           <h2>THE GREAT HALL</h2>
           <p class="gh-task-echo"></p>
@@ -403,8 +419,19 @@ export class GreatHallView {
     this.wireLeaveButton();
 
     const cancel = this.el.querySelector('.gh-cancel') as HTMLButtonElement;
+    let cancelConfirmTimer: ReturnType<typeof setTimeout> | undefined;
     cancel.addEventListener('click', () => {
-      if (this.meetingId) this.cb.onCancelMeeting(this.meetingId);
+      if (cancel.dataset.confirming === 'true') {
+        clearTimeout(cancelConfirmTimer);
+        if (this.meetingId) this.cb.onCancelMeeting(this.meetingId);
+      } else {
+        cancel.dataset.confirming = 'true';
+        cancel.textContent = 'CANCEL? CLICK AGAIN';
+        cancelConfirmTimer = setTimeout(() => {
+          cancel.dataset.confirming = 'false';
+          cancel.textContent = 'CANCEL MEETING';
+        }, 3000);
+      }
     });
 
     const stage = this.el.querySelector('.gh-stage') as HTMLElement;
@@ -532,7 +559,7 @@ function summaryHeadline(s: MeetingSummary): string {
 
 function summaryFooterHtml(s: MeetingSummary): string {
   const path = s.transcriptPath
-    ? `<span class="gh-summary-path">transcript: <code>${escapeText(s.transcriptPath)}</code></span>`
+    ? `<button type="button" class="gh-summary-path-btn" data-open-path="${escapeAttr(s.transcriptPath)}" title="open transcript">transcript saved · ${escapeText(s.transcriptPath)}</button>`
     : '<span class="gh-summary-path gh-summary-warn">transcript not saved — open a workspace folder to persist</span>';
   return `
     <div class="gh-summary">
@@ -552,4 +579,8 @@ function formatUSD(usd: number): string {
 
 function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string));
+}
+
+function escapeAttr(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 }

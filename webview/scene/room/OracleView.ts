@@ -76,6 +76,8 @@ export class OracleView {
     const rationale = this.el.querySelector<HTMLElement>('.oracle-rationale');
     const dest = this.el.querySelector<HTMLElement>('.oracle-destination');
     const destName = this.el.querySelector<HTMLElement>('.oracle-dest-name');
+    const countdown = this.el.querySelector<HTMLElement>('.oracle-countdown');
+    const cancelBtn = this.el.querySelector<HTMLButtonElement>('.oracle-cancel');
     if (!response) return;
 
     response.removeAttribute('hidden');
@@ -95,19 +97,39 @@ export class OracleView {
     if (dest) dest.removeAttribute('hidden');
     if (destName) destName.textContent = `→ ${destLabel}`;
 
-    this.routeTimer = setTimeout(() => {
+    // Restart countdown animation by replacing the bar element.
+    if (countdown) {
+      const bar = countdown.querySelector('.oracle-countdown-bar');
+      if (bar) { bar.remove(); const fresh = document.createElement('div'); fresh.className = 'oracle-countdown-bar'; countdown.appendChild(fresh); }
+    }
+
+    const doRoute = () => {
       if (decision.route === 'room') {
         this.cb.onRouteToRoom(decision.roomId, this.lastPrompt);
       } else {
         this.cb.onRouteToHall(decision.agents, this.lastPrompt);
       }
-    }, 1600);
+    };
+
+    this.routeTimer = setTimeout(doRoute, 3000);
+
+    if (cancelBtn) {
+      cancelBtn.hidden = false;
+      const onCancel = () => {
+        clearTimeout(this.routeTimer);
+        cancelBtn.hidden = true;
+        if (countdown) countdown.style.display = 'none';
+        this.setFormDisabled(false);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+      cancelBtn.addEventListener('click', onCancel);
+    }
   }
 
   private buildDOM(): void {
     this.el.innerHTML = `
       <header class="oracle-head">
-        <button class="leave" type="button" aria-label="leave oracle">&larr; LEAVE</button>
+        <button class="leave" type="button" aria-label="leave oracle">&larr; LEAVE <span class="leave-esc">esc</span></button>
         <div class="oracle-title">THE ORACLE <span class="oracle-tag">— the entrance</span></div>
         <div class="oracle-status" aria-live="polite"></div>
       </header>
@@ -135,10 +157,13 @@ export class OracleView {
           </svg>
         </div>
         <p class="oracle-label">What do you need?</p>
+        <p class="oracle-subtext">describe your goal — the oracle routes you to the right room</p>
         <div class="oracle-response" hidden>
           <p class="oracle-rationale"></p>
           <div class="oracle-destination" hidden>
             <span class="oracle-dest-name"></span>
+            <div class="oracle-countdown"><div class="oracle-countdown-bar"></div></div>
+            <button class="oracle-cancel" type="button" hidden>CANCEL</button>
           </div>
         </div>
       </main>
@@ -146,7 +171,7 @@ export class OracleView {
         <textarea
           class="oracle-input"
           rows="2"
-          placeholder="Ask the Oracle…"
+          placeholder="Ask the Oracle… (Ctrl+Enter to send)"
           aria-label="Ask the Oracle"
         ></textarea>
         <button class="oracle-submit" type="button">CONSULT</button>
@@ -170,7 +195,7 @@ export class OracleView {
 
     submit.addEventListener('click', doSubmit);
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         doSubmit();
       }
@@ -186,6 +211,10 @@ export class OracleView {
     if (input) { input.value = ''; input.disabled = false; }
     const submit = this.el.querySelector<HTMLButtonElement>('.oracle-submit');
     if (submit) submit.disabled = false;
+    const countdown = this.el.querySelector<HTMLElement>('.oracle-countdown');
+    if (countdown) countdown.style.display = '';
+    const cancelBtn = this.el.querySelector<HTMLButtonElement>('.oracle-cancel');
+    if (cancelBtn) cancelBtn.hidden = true;
   }
 
   private setFormDisabled(disabled: boolean): void {

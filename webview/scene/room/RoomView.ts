@@ -59,7 +59,7 @@ export class RoomView {
     this.el.style.setProperty('--accent', room.accentColor);
     this.el.innerHTML = `
       <header class="room-head">
-        <button class="leave" type="button" aria-label="leave room">&larr; LEAVE</button>
+        <button class="leave" type="button" aria-label="leave room">&larr; LEAVE <span class="leave-esc">esc</span></button>
         <div class="room-title">
           <h2 class="room-name"></h2>
           <p class="room-sub"></p>
