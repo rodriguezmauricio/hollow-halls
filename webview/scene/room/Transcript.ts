@@ -40,7 +40,21 @@ export interface TurnToolUse {
   readonly at: number;
 }
 
-export type Turn = TurnUser | TurnAgent | TurnToolUse;
+export interface TurnHandoff {
+  readonly kind: 'handoff';
+  readonly fromAgentId: string;
+  readonly toAgentId: string;
+  readonly at: number;
+}
+
+export interface TurnChainError {
+  readonly kind: 'chain-error';
+  readonly errorKind: 'unknown_agent' | 'hop_cap_reached';
+  readonly message: string;
+  readonly at: number;
+}
+
+export type Turn = TurnUser | TurnAgent | TurnToolUse | TurnHandoff | TurnChainError;
 
 export interface RoomPalette {
   readonly accent: string;
@@ -156,6 +170,16 @@ export class Transcript {
     this.scrollIfPinned();
   }
 
+  addHandoff(fromAgentId: string, toAgentId: string): void {
+    const turn: TurnHandoff = { kind: 'handoff', fromAgentId, toAgentId, at: Date.now() };
+    this.appendTurn(turn);
+  }
+
+  addChainError(errorKind: TurnChainError['errorKind'], message: string): void {
+    const turn: TurnChainError = { kind: 'chain-error', errorKind, message, at: Date.now() };
+    this.appendTurn(turn);
+  }
+
   /** Attach a BUILD button to the most recent completed agent turn. */
   showBuildButton(agentId: string, label: string, onClick: () => void): void {
     for (let i = this.turns.length - 1; i >= 0; i--) {
@@ -255,7 +279,25 @@ export class Transcript {
   private renderTurn(turn: Turn): HTMLLIElement {
     if (turn.kind === 'user') return this.renderUserTurn(turn);
     if (turn.kind === 'tool') return this.renderStandaloneTool(turn);
+    if (turn.kind === 'handoff') return this.renderHandoffTurn(turn);
+    if (turn.kind === 'chain-error') return this.renderChainErrorTurn(turn);
     return this.renderAgentTurn(turn);
+  }
+
+  private renderHandoffTurn(turn: TurnHandoff): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'turn turn-handoff';
+    const dest = this.palette.agents.get(turn.toAgentId);
+    const destName = dest?.name ?? turn.toAgentId;
+    li.textContent = `handed off to ${destName}`;
+    return li;
+  }
+
+  private renderChainErrorTurn(turn: TurnChainError): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'turn turn-chain-error';
+    li.textContent = `chain stopped — ${turn.message}`;
+    return li;
   }
 
   private renderAgentTurn(turn: TurnAgent): HTMLLIElement {

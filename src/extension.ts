@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AgentManager } from '@/core/AgentManager';
+import { runChain } from '@/core/RoomChain';
 import { CommonRoom, type Attending } from '@/core/CommonRoom';
 import { resolveAgentCall, providerForModerator } from '@/core/ProviderFactory';
 import { loadSettings, openSettingsInEditor } from '@/core/Settings';
@@ -193,14 +194,21 @@ function wireMessages(
 
         case 'build_last_turn':
           // Re-run the exact prompt for a single agent in acceptEdits mode so
-          // it can now execute (edits, bash, etc.).
-          await handleSendPrompt(p, context, skills, {
-            type: 'send_prompt',
-            roomId: raw.roomId,
-            agentIds: [raw.agentId],
-            prompt: raw.prompt,
-            permissionMode: 'acceptEdits',
-          });
+          // it can now execute (edits, bash, etc.). disableChain so BUILD
+          // targets only this agent — no [NEXT:] handoffs.
+          await handleSendPrompt(
+            p,
+            context,
+            skills,
+            {
+              type: 'send_prompt',
+              roomId: raw.roomId,
+              agentIds: [raw.agentId],
+              prompt: raw.prompt,
+              permissionMode: 'acceptEdits',
+            },
+            { disableChain: true },
+          );
           return;
 
         case 'open_great_hall':
@@ -256,11 +264,18 @@ function wireMessages(
   });
 }
 
+interface SendPromptOpts {
+  /** Internal flag set by `build_last_turn` so BUILD never accidentally
+   *  triggers a [NEXT:] chain — it should target one agent only. */
+  readonly disableChain?: boolean;
+}
+
 async function handleSendPrompt(
   p: vscode.WebviewPanel,
   context: vscode.ExtensionContext,
   skills: SkillsManager,
   msg: Extract<WebviewMsg, { type: 'send_prompt' }>,
+  opts: SendPromptOpts = {},
 ): Promise<void> {
   const room = ROOM_BY_ID[msg.roomId];
   if (!room) {
@@ -285,100 +300,211 @@ async function handleSendPrompt(
   send(p, { type: 'room_activity', roomId, busy: true });
 
   try {
-    for (const agent of agents) {
-      if (roomCtrl.signal.aborted) break;
+    // Single-agent + chain-allowed → run as a [NEXT:]/[DONE] chain so the
+    // agent can hand off to a room-mate. Multi-agent (or BUILD) → keep the
+    // legacy fan-out so each picked agent answers independently.
+    const useChain = !opts.disableChain && agents.length === 1;
 
-      let call;
-      try {
-        call = await resolveAgentCall(context, agent, roomId, settings, skills);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        send(p, { type: 'error', message });
-        return;
-      }
-
-      // The caller-requested permissionMode (e.g. from a BUILD button) wins
-      // over the resolved default for this single call.
-      const effectiveMode: PermissionMode = msg.permissionMode ?? call.permissionMode ?? 'default';
-      const manager = new AgentManager(call.provider);
-      const providerId = call.provider.id;
-      let streamed = '';
-
-      await manager.run(
-        {
+    if (useChain) {
+      await runChainForRoom({
+        p,
+        context,
+        skills,
+        settings,
+        room,
+        firstAgent: agents[0]!,
+        meetingId,
+        msg,
+        signal: roomCtrl.signal,
+      });
+    } else {
+      for (const agent of agents) {
+        if (roomCtrl.signal.aborted) break;
+        await runFanoutForAgent({
+          p,
+          context,
+          skills,
+          settings,
           room,
           agent,
-          userPrompt: msg.prompt,
           meetingId,
-          permissionMode: effectiveMode,
-          skillsDir: call.skillsDir,
-          maxTurns: call.maxTurns,
-          maxTokens: call.maxTokens,
-          thinking: msg.thinking,
+          msg,
           signal: roomCtrl.signal,
-        },
-        {
-          onThinking: () =>
-            send(p, { type: 'agent_thinking', roomId, meetingId, agentId: agent.id }),
-          onChunk: (chunk) => {
-            streamed += chunk;
-            send(p, { type: 'agent_text_chunk', roomId, meetingId, agentId: agent.id, chunk });
-          },
-          onToolUse: (event) => forwardToolUse(p, roomId, meetingId, agent.id, event),
-          onComplete: (result) => {
-            const streamCost = costForStream({
-              provider: providerId,
-              model: result.model,
-              inputTokens: result.inputTokens,
-              outputTokens: result.outputTokens,
-              providerReportedCostUSD: result.providerReportedCostUSD,
-            });
-            costTracker.record({
-              roomId,
-              agentId: agent.id,
-              provider: providerId,
-              model: result.model,
-              inputTokens: result.inputTokens,
-              outputTokens: result.outputTokens,
-              costUSD: streamCost,
-            });
-            send(p, {
-              type: 'cost_update',
-              roomId,
-              agentId: agent.id,
-              provider: providerId,
-              model: result.model,
-              inputTokens: result.inputTokens,
-              outputTokens: result.outputTokens,
-              sessionTotalUSD: costTracker.sessionTotal,
-              thisStreamUSD: streamCost,
-            });
-            send(p, { type: 'agent_message_complete', roomId, meetingId, agentId: agent.id });
-
-            // Plan-mode replies land in .hollow/plans/ as markdown — survives
-            // the session for manual handoff to another room.
-            if (effectiveMode === 'plan' && streamed.trim().length > 0) {
-              savePlan({
-                roomId,
-                agentId: agent.id,
-                agentName: agent.name,
-                body: streamed,
-              }).then((path) => {
-                if (path) send(p, { type: 'plan_saved', roomId, agentId: agent.id, path });
-              }).catch((err) => {
-                console.error('[hollow halls] failed to save plan:', err);
-              });
-            }
-          },
-          onError: (err) =>
-            send(p, { type: 'error', message: `${agent.name}: ${err.message}` }),
-        },
-      );
+        });
+      }
     }
   } finally {
     roomAborts.delete(roomId);
     send(p, { type: 'room_activity', roomId, busy: false });
   }
+}
+
+interface SingleRunCtx {
+  readonly p: vscode.WebviewPanel;
+  readonly context: vscode.ExtensionContext;
+  readonly skills: SkillsManager;
+  readonly settings: Awaited<ReturnType<typeof loadSettings>>;
+  readonly room: Room;
+  readonly meetingId: string;
+  readonly msg: Extract<WebviewMsg, { type: 'send_prompt' }>;
+  readonly signal: AbortSignal;
+}
+
+/** Legacy fan-out path: one shot per picked agent, no inter-agent handoff. */
+async function runFanoutForAgent(
+  ctx: SingleRunCtx & { agent: AgentDef },
+): Promise<void> {
+  const { p, context, skills, settings, room, agent, meetingId, msg, signal } = ctx;
+  const roomId = room.id;
+
+  let call;
+  try {
+    call = await resolveAgentCall(context, agent, roomId, settings, skills);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    send(p, { type: 'error', message });
+    return;
+  }
+
+  const effectiveMode: PermissionMode = msg.permissionMode ?? call.permissionMode ?? 'default';
+  const manager = new AgentManager(call.provider);
+  const providerId = call.provider.id;
+  let streamed = '';
+
+  await manager.run(
+    {
+      room,
+      agent,
+      userPrompt: msg.prompt,
+      meetingId,
+      permissionMode: effectiveMode,
+      skillsDir: call.skillsDir,
+      maxTurns: call.maxTurns,
+      maxTokens: call.maxTokens,
+      thinking: msg.thinking,
+      signal,
+    },
+    {
+      onThinking: () =>
+        send(p, { type: 'agent_thinking', roomId, meetingId, agentId: agent.id }),
+      onChunk: (chunk) => {
+        streamed += chunk;
+        send(p, { type: 'agent_text_chunk', roomId, meetingId, agentId: agent.id, chunk });
+      },
+      onToolUse: (event) => forwardToolUse(p, roomId, meetingId, agent.id, event),
+      onComplete: (result) => {
+        recordAndAnnounceCost({
+          p, roomId, agentId: agent.id, providerId, result,
+        });
+        send(p, { type: 'agent_message_complete', roomId, meetingId, agentId: agent.id });
+        if (effectiveMode === 'plan' && streamed.trim().length > 0) {
+          savePlan({ roomId, agentId: agent.id, agentName: agent.name, body: streamed })
+            .then((path) => {
+              if (path) send(p, { type: 'plan_saved', roomId, agentId: agent.id, path });
+            })
+            .catch((err) => {
+              console.error('[hollow halls] failed to save plan:', err);
+            });
+        }
+      },
+      onError: (err) =>
+        send(p, { type: 'error', message: `${agent.name}: ${err.message}` }),
+    },
+  );
+}
+
+/** [NEXT:]/[DONE] chain path: agent A may hand off to a room-mate B, etc. */
+async function runChainForRoom(
+  ctx: SingleRunCtx & { firstAgent: AgentDef },
+): Promise<void> {
+  const { p, context, skills, settings, room, firstAgent, meetingId, msg, signal } = ctx;
+  const roomId = room.id;
+  const agentById: Record<string, AgentDef> = {};
+  for (const a of room.agents) agentById[a.id] = a;
+  const effectiveMode: PermissionMode = msg.permissionMode ?? 'default';
+
+  await runChain(
+    {
+      room,
+      firstAgent,
+      userPrompt: msg.prompt,
+      meetingId,
+      permissionMode: msg.permissionMode,
+      thinking: msg.thinking,
+      signal,
+      resolveCall: (a) => resolveAgentCall(context, a, roomId, settings, skills),
+    },
+    {
+      onAgentThinking: (agentId) =>
+        send(p, { type: 'agent_thinking', roomId, meetingId, agentId }),
+      onAgentChunk: (agentId, chunk) =>
+        send(p, { type: 'agent_text_chunk', roomId, meetingId, agentId, chunk }),
+      onAgentToolUse: (agentId, event) =>
+        forwardToolUse(p, roomId, meetingId, agentId, event),
+      onAgentComplete: (agentId, cleanText, result, providerId) => {
+        recordAndAnnounceCost({ p, roomId, agentId, providerId, result });
+        send(p, { type: 'agent_message_complete', roomId, meetingId, agentId });
+        if (effectiveMode === 'plan' && cleanText.trim().length > 0) {
+          const a = agentById[agentId];
+          if (a) {
+            savePlan({ roomId, agentId, agentName: a.name, body: cleanText })
+              .then((path) => {
+                if (path) send(p, { type: 'plan_saved', roomId, agentId, path });
+              })
+              .catch((err) => {
+                console.error('[hollow halls] failed to save plan:', err);
+              });
+          }
+        }
+      },
+      onAgentError: (agentId, err) => {
+        const a = agentById[agentId];
+        const name = a ? a.name : agentId;
+        send(p, { type: 'error', message: `${name}: ${err.message}` });
+      },
+      onHandoff: (fromAgentId, toAgentId) =>
+        send(p, { type: 'chain_handoff', roomId, meetingId, fromAgentId, toAgentId }),
+      onChainError: (kind, message) =>
+        send(p, { type: 'chain_error', roomId, meetingId, kind, message }),
+    },
+  );
+}
+
+function recordAndAnnounceCost(args: {
+  readonly p: vscode.WebviewPanel;
+  readonly roomId: string;
+  readonly agentId: string;
+  readonly providerId: 'anthropic' | 'ollama' | 'claude-code';
+  readonly result: import('@/api/provider').StreamResult;
+}): void {
+  const { p, roomId, agentId, providerId, result } = args;
+  const streamCost = costForStream({
+    provider: providerId,
+    model: result.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    providerReportedCostUSD: result.providerReportedCostUSD,
+  });
+  costTracker.record({
+    roomId,
+    agentId,
+    provider: providerId,
+    model: result.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    costUSD: streamCost,
+  });
+  send(p, {
+    type: 'cost_update',
+    roomId,
+    agentId,
+    provider: providerId,
+    model: result.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    sessionTotalUSD: costTracker.sessionTotal,
+    thisStreamUSD: streamCost,
+  });
 }
 
 async function handleConvene(

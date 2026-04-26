@@ -198,6 +198,23 @@ export type ExtensionMsg =
   | { readonly type: 'oracle_thinking' }
   | { readonly type: 'oracle_response'; readonly decision: OracleDecision }
   | {
+      /** Chain hop: agent A handed off to agent B in the same room.
+       *  Cosmetic — webview draws a "→ B" marker between turns. */
+      readonly type: 'chain_handoff';
+      readonly roomId: string;
+      readonly meetingId: string;
+      readonly fromAgentId: string;
+      readonly toAgentId: string;
+    }
+  | {
+      /** Chain terminated abnormally — unknown handoff target or hop cap. */
+      readonly type: 'chain_error';
+      readonly roomId: string;
+      readonly meetingId: string;
+      readonly kind: 'unknown_agent' | 'hop_cap_reached';
+      readonly message: string;
+    }
+  | {
       readonly type: 'error';
       readonly message: string;
     };

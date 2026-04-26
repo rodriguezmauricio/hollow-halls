@@ -1335,3 +1335,45 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   font-family: 'IBM Plex Mono', monospace; font-size: 7px; letter-spacing: 1px;
   fill: var(--bone-dim); opacity: 0.75;
 }
+
+/* Chain handoff connector — slim centered row between agent cards. */
+.turn-handoff {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--stone-hi);
+  text-align: center;
+  padding: 4px 0 6px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.turn-handoff::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--stone-lo);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.turn-handoff::after {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--stone-lo);
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+/* Chain error — small warning row in amber/sec key. */
+.turn-chain-error {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--sec);
+  padding: 6px 10px;
+  border: 1px solid rgba(214, 108, 108, 0.3);
+  border-radius: 2px;
+  margin: 4px 0;
+  background: rgba(214, 108, 108, 0.06);
+}

@@ -315,6 +315,36 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       return;
     }
 
+    case 'chain_handoff': {
+      if (msg.roomId === 'common') return;
+      const st = stateFor(msg.roomId);
+      st.turns.push({
+        kind: 'handoff',
+        fromAgentId: msg.fromAgentId,
+        toAgentId: msg.toAgentId,
+        at: Date.now(),
+      });
+      if (roomView.currentRoomId() === msg.roomId) {
+        roomView.addHandoff(msg.fromAgentId, msg.toAgentId);
+      }
+      return;
+    }
+
+    case 'chain_error': {
+      if (msg.roomId === 'common') return;
+      const st = stateFor(msg.roomId);
+      st.turns.push({
+        kind: 'chain-error',
+        errorKind: msg.kind,
+        message: msg.message,
+        at: Date.now(),
+      });
+      if (roomView.currentRoomId() === msg.roomId) {
+        roomView.addChainError(msg.kind, msg.message);
+      }
+      return;
+    }
+
     case 'plan_saved': {
       if (msg.roomId === 'common') {
         greatHall.attachPlanPath(msg.agentId, msg.path);

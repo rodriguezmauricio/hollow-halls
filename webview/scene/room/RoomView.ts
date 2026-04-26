@@ -116,6 +116,14 @@ export class RoomView {
     this.transcript.addToolUse(event);
   }
 
+  addHandoff(fromAgentId: string, toAgentId: string): void {
+    this.transcript.addHandoff(fromAgentId, toAgentId);
+  }
+
+  addChainError(kind: 'unknown_agent' | 'hop_cap_reached', message: string): void {
+    this.transcript.addChainError(kind, message);
+  }
+
   showBuildOnLastAgentTurn(agentId: string, prompt: string): void {
     if (!this.room) return;
     const roomId = this.room.id;
