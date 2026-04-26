@@ -258,7 +258,9 @@ const councilSection = (() => {
   return sec;
 })();
 // Insert above the SVG so The Council sits at the top of the floor plan.
-buildingFrame.insertBefore(councilSection, svg);
+// `svg` is wrapped in `.building-frame`, not a direct child of `.frame`, so
+// we insert into svg's actual parent — defensive against future DOM shuffles.
+svg.parentElement?.insertBefore(councilSection, svg);
 
 function renderCouncilTile(room: RoomPublicInfo): void {
   councilSection.innerHTML = '';
@@ -309,7 +311,9 @@ const customRoomSection = (() => {
   return sec;
 })();
 
-buildingFrame.appendChild(customRoomSection);
+// Place custom rooms right under the SVG floor plan (same wrapper),
+// so they read as part of the building rather than a footnote.
+(svg.parentElement ?? buildingFrame).appendChild(customRoomSection);
 
 function makeCustomRoomTile(room: RoomPublicInfo): HTMLDivElement {
   const tile = document.createElement('div');

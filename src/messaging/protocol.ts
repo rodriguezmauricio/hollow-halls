@@ -90,6 +90,15 @@ export type WebviewMsg =
       readonly thinking?: ThinkingLevel;
     }
   | { readonly type: 'cancel_meeting'; readonly meetingId: string }
+  | {
+      /** Resume a previously ended meeting with a follow-up question.
+       *  Extension restores the prior transcript and re-runs convene. */
+      readonly type: 'continue_meeting';
+      readonly meetingId: string;
+      readonly followUp: string;
+      readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+      readonly thinking?: ThinkingLevel;
+    }
   | { readonly type: 'cancel_room_stream'; readonly roomId: string }
   | { readonly type: 'oracle_consult'; readonly prompt: string }
   | { readonly type: 'open_file'; readonly path: string }

@@ -27,22 +27,6 @@ export function mountShell(root: HTMLElement): void {
 
       <div class="building-frame">${buildingSvg()}</div>
 
-      <div class="section-label">Custom Construction</div>
-      <div class="custom">
-        <div class="custom-tile" data-tile="forge">
-          <div class="ic">+</div>
-          <div class="tx">forge a new hall</div>
-        </div>
-        <div class="custom-tile" data-tile="community">
-          <div class="ic">⌘</div>
-          <div class="tx">community halls</div>
-        </div>
-        <div class="custom-tile" data-tile="theme">
-          <div class="ic">◈</div>
-          <div class="tx">switch theme</div>
-        </div>
-      </div>
-
       <footer class="site-footer">
         <div>built on claude · your agents, your rooms</div>
         <div class="links">
