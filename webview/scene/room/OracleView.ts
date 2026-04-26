@@ -53,16 +53,40 @@ export class OracleView {
     if (status) {
       status.textContent = 'consulting…';
       status.classList.add('shown');
+      status.classList.remove('oracle-status-error');
     }
+    // Hide any prior response/error so the next answer appears cleanly.
+    const errorBox = this.el.querySelector<HTMLElement>('.oracle-error');
+    errorBox?.setAttribute('hidden', '');
   }
 
   showError(message: string): void {
+    clearTimeout(this.routeTimer);
     const status = this.el.querySelector<HTMLElement>('.oracle-status');
     if (status) {
-      status.textContent = message;
+      status.textContent = 'the oracle is silent';
       status.classList.add('shown', 'oracle-status-error');
     }
+    // Also surface the error in the body, where the user is already looking,
+    // with the actual error text + a hint that they can retry.
+    let errorBox = this.el.querySelector<HTMLElement>('.oracle-error');
+    if (!errorBox) {
+      errorBox = document.createElement('div');
+      errorBox.className = 'oracle-error';
+      const body = this.el.querySelector<HTMLElement>('.oracle-body');
+      body?.appendChild(errorBox);
+    }
+    errorBox.removeAttribute('hidden');
+    errorBox.innerHTML = `
+      <div class="oracle-error-title">consultation failed</div>
+      <div class="oracle-error-msg"></div>
+      <div class="oracle-error-hint">try again, or rephrase your question</div>
+    `;
+    (errorBox.querySelector('.oracle-error-msg') as HTMLElement).textContent = message;
     this.setFormDisabled(false);
+    requestAnimationFrame(() => {
+      this.el.querySelector<HTMLTextAreaElement>('.oracle-input')?.focus();
+    });
   }
 
   showDecision(decision: OracleDecision): void {
@@ -205,6 +229,7 @@ export class OracleView {
   private reset(): void {
     clearTimeout(this.routeTimer);
     this.el.querySelector<HTMLElement>('.oracle-response')?.setAttribute('hidden', '');
+    this.el.querySelector<HTMLElement>('.oracle-error')?.setAttribute('hidden', '');
     const status = this.el.querySelector<HTMLElement>('.oracle-status');
     if (status) { status.textContent = ''; status.classList.remove('shown', 'oracle-status-error'); }
     const input = this.el.querySelector<HTMLTextAreaElement>('.oracle-input');

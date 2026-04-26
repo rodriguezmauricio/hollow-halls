@@ -1183,6 +1183,31 @@ button.gh-summary-path-btn:hover { background: rgba(242,234,215,0.12); color: va
   text-align: center;
   max-width: 560px;
 }
+
+/* Oracle error inline — when consultation fails, surface the error in the
+ * body where the user is already looking (not just a small header status). */
+.oracle-error {
+  max-width: 560px;
+  margin: 18px auto 0;
+  padding: 14px 18px;
+  border: 1px solid rgba(214, 108, 108, 0.32);
+  background: rgba(214, 108, 108, 0.06);
+  text-align: left;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.oracle-error-title {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--sec); margin-bottom: 6px;
+}
+.oracle-error-msg {
+  font-size: 12px; line-height: 1.5;
+  color: var(--bone-dim); margin-bottom: 8px;
+  word-break: break-word;
+}
+.oracle-error-hint {
+  font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--bone-ghost);
+}
 .oracle-rationale {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 13px; line-height: 1.7;
