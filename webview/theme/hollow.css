@@ -99,6 +99,32 @@ body {
 
 .frame { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 28px 36px 48px; }
 
+.provider-badge {
+  position: absolute;
+  bottom: 52px;
+  right: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 5;
+}
+.provider-badge-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--orchid);
+  opacity: 0.65;
+}
+.provider-badge-model {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--bone-dim);
+  opacity: 0.4;
+}
+
 /* header */
 .site-header {
   display: flex; align-items: center; justify-content: space-between;

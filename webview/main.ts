@@ -219,6 +219,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'init':
       msg.rooms.forEach((r) => rooms.set(r.id, r));
       markLiveRooms(svg, rooms);
+      showProviderBadge(buildingFrame, msg.provider, msg.model);
       showFirstRunOverlay();
       return;
 
@@ -539,6 +540,30 @@ function showFirstRunOverlay(): void {
     vscode.setState({ ...(vscode.getState() as object ?? {}), firstRunDismissed: true });
   });
   document.body.appendChild(overlay);
+}
+
+function showProviderBadge(
+  frame: HTMLElement,
+  provider: 'anthropic' | 'ollama' | 'claude-code',
+  model: string,
+): void {
+  frame.querySelector('.provider-badge')?.remove();
+  const badge = document.createElement('div');
+  badge.className = 'provider-badge';
+  const providerLabel: Record<string, string> = {
+    'claude-code': 'CLAUDE MAX',
+    'anthropic':   'ANTHROPIC API',
+    'ollama':      'OLLAMA LOCAL',
+  };
+  const nameEl = document.createElement('span');
+  nameEl.className = 'provider-badge-name';
+  nameEl.textContent = providerLabel[provider] ?? provider.toUpperCase();
+  const modelEl = document.createElement('span');
+  modelEl.className = 'provider-badge-model';
+  modelEl.textContent = model;
+  badge.appendChild(nameEl);
+  badge.appendChild(modelEl);
+  frame.appendChild(badge);
 }
 
 /** Briefly pulse the Oracle-target accent on a room's SVG group. */

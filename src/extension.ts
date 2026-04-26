@@ -179,12 +179,18 @@ function wireMessages(
   p.webview.onDidReceiveMessage(async (raw: WebviewMsg) => {
     try {
       switch (raw.type) {
-        case 'ready':
+        case 'ready': {
+          const initSettings = await loadSettings();
+          const initProvider = initSettings.defaultProvider;
+          const initModel = initSettings.providers[initProvider].defaultModel;
           send(p, {
             type: 'init',
             rooms: ROOMS.map(toPublic),
+            provider: initProvider,
+            model: initModel,
           });
           return;
+        }
 
         case 'open_room': {
           const room = ROOM_BY_ID[raw.roomId];

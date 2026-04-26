@@ -95,6 +95,9 @@ export type ExtensionMsg =
   | {
       readonly type: 'init';
       readonly rooms: readonly RoomPublicInfo[];
+      /** Active provider + model so the floor plan can show a status badge. */
+      readonly provider: 'anthropic' | 'ollama' | 'claude-code';
+      readonly model: string;
     }
   | {
       readonly type: 'room_opened';
