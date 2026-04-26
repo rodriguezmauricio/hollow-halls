@@ -319,13 +319,16 @@ export class GreatHallView {
 
   private renderRoster(): HTMLElement {
     const container = document.createElement('div');
-    container.className = 'gh-card-grid';
+    container.className = 'gh-roster-list';
     this.roster.forEach((group) => {
-      const groupLabel = document.createElement('div');
-      groupLabel.className = 'gh-roster-group-label';
-      groupLabel.style.setProperty('--card-accent', group.accentColor);
-      groupLabel.textContent = group.roomName;
-      container.appendChild(groupLabel);
+      const section = document.createElement('div');
+      section.className = 'gh-roster-section';
+      section.style.setProperty('--card-accent', group.accentColor);
+
+      const head = document.createElement('div');
+      head.className = 'gh-roster-section-head';
+      head.textContent = group.roomName;
+      section.appendChild(head);
 
       const row = document.createElement('div');
       row.className = 'gh-card-row';
@@ -379,7 +382,8 @@ export class GreatHallView {
         });
         row.appendChild(card);
       });
-      container.appendChild(row);
+      section.appendChild(row);
+      container.appendChild(section);
     });
     return container;
   }

@@ -815,15 +815,24 @@ body {
   min-height: 0;
 }
 .gh-roster { overflow-y: auto; padding-right: 4px; }
-.gh-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 12px;
+.gh-roster-list { display: flex; flex-direction: column; gap: 10px; }
+.gh-roster-section {
+  border: 1px solid rgba(242,234,215,0.08);
+  border-left: 2px solid var(--card-accent, rgba(242,234,215,0.15));
+  background: rgba(242,234,215,0.02);
+  padding: 10px 12px 12px;
+}
+.gh-roster-section-head {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--card-accent, var(--bone-dim));
+  margin-bottom: 10px;
+  opacity: 0.85;
 }
 .gh-agent-card {
   display: flex; flex-direction: column; align-items: center;
-  gap: 6px;
-  padding: 14px 10px 12px;
+  gap: 7px;
+  padding: 14px 12px 12px;
   background: rgba(242,234,215,0.03);
   border: 1px solid rgba(242,234,215,0.1);
   cursor: pointer;
@@ -847,19 +856,19 @@ body {
 }
 .gh-card-sprite svg { display: block; }
 .gh-card-name {
-  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 2px;
+  font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1.5px;
   text-transform: uppercase; text-align: center;
   color: var(--bone-ghost);
   line-height: 1.3;
 }
 .gh-agent-card.picked .gh-card-name { color: var(--card-accent, var(--bone)); }
 .gh-card-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-  color: var(--bone-ghost); text-align: center; letter-spacing: 0.5px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--bone-ghost); text-align: center; letter-spacing: 0.3px;
 }
 .gh-card-status {
   display: flex; align-items: center; gap: 5px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
   color: var(--bone-ghost);
 }
 .gh-card-dot {
@@ -1319,15 +1328,7 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   color: var(--bone-ghost); opacity: 0.65; margin-top: 2px;
 }
 
-/* Great Hall roster group labels (I9) */
-.gh-roster-group-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 2px;
-  color: var(--card-accent, var(--bone-dim)); opacity: 0.7;
-  text-transform: uppercase; padding: 8px 0 4px;
-  border-top: 1px solid rgba(242,234,215,0.06); margin-top: 4px;
-}
-.gh-roster-group-label:first-child { border-top: none; margin-top: 0; padding-top: 0; }
-.gh-card-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.gh-card-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* GH rejoin label (F7) */
 .room-rejoin-label {
