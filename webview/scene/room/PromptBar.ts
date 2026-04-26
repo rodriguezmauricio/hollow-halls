@@ -1,30 +1,35 @@
-import type { AgentPublicInfo } from '@/messaging/protocol';
+import type { AgentPublicInfo, PickerMode, ThinkingLevel } from '@/messaging/protocol';
 
 export interface PromptBarCallbacks {
   readonly onSend: (agentIds: string[], prompt: string) => void;
+  readonly initialMode?: PickerMode;
 }
 
-/**
- * Prompt bar docked at the bottom of the room view. Agents render as chips
- * above the textarea; click toggles each one. For M2 (one-agent rooms) the
- * single agent is pre-selected and the chip row serves as a visual anchor
- * for "you are speaking to Maya."
- */
 export class PromptBar {
   readonly el: HTMLDivElement;
   private chipRow: HTMLDivElement;
+  private modeRowEl: HTMLDivElement;
+  private thinkRowEl: HTMLDivElement;
   private textarea: HTMLTextAreaElement;
   private sendBtn: HTMLButtonElement;
   private statusEl: HTMLSpanElement;
   private picked = new Set<string>();
   private busy = false;
   private agents: AgentPublicInfo[] = [];
+  private pickerMode: PickerMode;
+  private pickerThinking: ThinkingLevel = 'off';
 
   constructor(private readonly cb: PromptBarCallbacks) {
+    this.pickerMode = cb.initialMode ?? 'plan';
+
     this.el = document.createElement('div');
     this.el.className = 'prompt-bar';
     this.el.innerHTML = `
       <div class="prompt-chip-row"></div>
+      <div class="prompt-modes">
+        <div class="prompt-mode-row"></div>
+        <div class="prompt-think-row"></div>
+      </div>
       <div class="prompt-input-row">
         <textarea class="prompt-field" rows="2" placeholder="Speak your intent. Ctrl/⌘+Enter to commune."></textarea>
         <button class="send" type="button" disabled>COMMUNE</button>
@@ -33,9 +38,14 @@ export class PromptBar {
     `;
 
     this.chipRow = this.el.querySelector('.prompt-chip-row') as HTMLDivElement;
+    this.modeRowEl = this.el.querySelector('.prompt-mode-row') as HTMLDivElement;
+    this.thinkRowEl = this.el.querySelector('.prompt-think-row') as HTMLDivElement;
     this.textarea = this.el.querySelector('.prompt-field') as HTMLTextAreaElement;
     this.sendBtn = this.el.querySelector('.send') as HTMLButtonElement;
     this.statusEl = this.el.querySelector('.prompt-status-text') as HTMLSpanElement;
+
+    this.buildModeButtons();
+    this.buildThinkButtons();
 
     this.sendBtn.addEventListener('click', () => this.submit());
     this.textarea.addEventListener('keydown', (e) => {
@@ -45,6 +55,61 @@ export class PromptBar {
       }
     });
     this.textarea.addEventListener('input', () => this.updateState());
+  }
+
+  selectedMode(): PickerMode { return this.pickerMode; }
+  selectedThinking(): ThinkingLevel { return this.pickerThinking; }
+
+  setMode(mode?: string): void {
+    if (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions') {
+      this.pickerMode = mode as PickerMode;
+      this.buildModeButtons();
+    }
+  }
+
+  private buildModeButtons(): void {
+    const defs: { mode: PickerMode; label: string }[] = [
+      { mode: 'plan', label: 'PLAN' },
+      { mode: 'acceptEdits', label: 'EDIT' },
+      { mode: 'bypassPermissions', label: 'BYPASS' },
+    ];
+    this.modeRowEl.innerHTML = '';
+    for (const { mode, label } of defs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pmode-btn' + (this.pickerMode === mode ? ' selected' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        this.pickerMode = mode;
+        this.modeRowEl.querySelectorAll('.pmode-btn').forEach((b) =>
+          b.classList.toggle('selected', b === btn),
+        );
+      });
+      this.modeRowEl.appendChild(btn);
+    }
+  }
+
+  private buildThinkButtons(): void {
+    const defs: { level: ThinkingLevel; label: string }[] = [
+      { level: 'off', label: 'OFF' },
+      { level: 'low', label: 'LOW' },
+      { level: 'medium', label: 'MED' },
+      { level: 'high', label: 'HIGH' },
+    ];
+    this.thinkRowEl.innerHTML = '';
+    for (const { level, label } of defs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pthink-btn' + (this.pickerThinking === level ? ' selected' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        this.pickerThinking = level;
+        this.thinkRowEl.querySelectorAll('.pthink-btn').forEach((b) =>
+          b.classList.toggle('selected', b === btn),
+        );
+      });
+      this.thinkRowEl.appendChild(btn);
+    }
   }
 
   setAgents(agents: AgentPublicInfo[], accent: string): void {
@@ -74,7 +139,7 @@ export class PromptBar {
         this.updateState();
       });
       this.chipRow.appendChild(chip);
-      this.picked.add(a.id); // auto-select all
+      this.picked.add(a.id);
     });
     this.updateState();
   }

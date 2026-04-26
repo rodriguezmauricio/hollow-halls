@@ -1,18 +1,7 @@
-import type { AgentPublicInfo, AttendingAgent, ThinkingLevel } from '@/messaging/protocol';
+import type { AgentPublicInfo, AttendingAgent, PickerMode, ThinkingLevel } from '@/messaging/protocol';
 import { agentSprite } from '../Agent';
 import { buildGreatHallScene } from './scenes';
 import { Transcript, type Turn, type TurnAgentCost, type TurnToolUse } from './Transcript';
-import type { PickerMode } from './RoomView';
-
-const MODE_LABEL: Record<string, string> = {
-  plan: 'PLAN', acceptEdits: 'EDIT', bypassPermissions: 'BYPASS',
-};
-const MODE_DESC: Record<string, string> = {
-  plan: 'Explores first · BUILD to execute',
-  acceptEdits: 'Edits files directly without approval',
-  bypassPermissions: 'Runs commands without approval prompts',
-};
-const THINK_LABEL: Record<ThinkingLevel, string> = { off: 'OFF', low: 'LOW', medium: 'MED', high: 'HIGH' };
 
 export interface GreatHallRosterGroup {
   readonly roomId: string;
@@ -176,83 +165,53 @@ export class GreatHallView {
   }
 
   setMode(mode?: string): void {
-    if (mode && (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions')) {
+    if (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions') {
       this.pickerMode = mode as PickerMode;
-      this.buildGHPicker();
+      this.buildGHModeButtons();
     }
-    this.syncGHPill();
   }
 
-  private buildGHPicker(): void {
-    const picker = this.el.querySelector<HTMLElement>('.mode-picker');
-    const pill = this.el.querySelector<HTMLButtonElement>('.mode-pill');
-    if (!picker || !pill) return;
+  private buildGHModeButtons(): void {
+    const modeRow = this.el.querySelector<HTMLElement>('.prompt-mode-row');
+    const thinkRow = this.el.querySelector<HTMLElement>('.prompt-think-row');
+    if (!modeRow || !thinkRow) return;
 
-    picker.innerHTML = `
-      <div class="mode-picker-group">
-        <div class="mode-picker-label">PERMISSION MODE</div>
-        ${(['plan', 'acceptEdits', 'bypassPermissions'] as PickerMode[]).map((m) => `
-          <button class="mode-opt${this.pickerMode === m ? ' selected' : ''}" data-mode="${m}" type="button">
-            <span class="mode-opt-check">${this.pickerMode === m ? '✓' : ''}</span>
-            <div class="mode-opt-text">
-              <span class="mode-opt-name">${MODE_LABEL[m]}</span>
-              <span class="mode-opt-desc">${MODE_DESC[m]}</span>
-            </div>
-          </button>`).join('')}
-      </div>
-      <div class="mode-picker-group">
-        <div class="mode-picker-label">THINKING</div>
-        <div class="think-row">
-          ${(['off', 'low', 'medium', 'high'] as ThinkingLevel[]).map((l) => `
-            <button class="think-opt${this.pickerThinking === l ? ' selected' : ''}" data-level="${l}" type="button">${THINK_LABEL[l]}</button>
-          `).join('')}
-        </div>
-        <div class="mode-picker-note">Extended thinking · Anthropic API</div>
-      </div>
-    `;
-
-    picker.querySelectorAll<HTMLButtonElement>('.mode-opt').forEach((btn) => {
+    const modeDefs: { mode: PickerMode; label: string }[] = [
+      { mode: 'plan', label: 'PLAN' },
+      { mode: 'acceptEdits', label: 'EDIT' },
+      { mode: 'bypassPermissions', label: 'BYPASS' },
+    ];
+    modeRow.innerHTML = '';
+    for (const { mode, label } of modeDefs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pmode-btn' + (this.pickerMode === mode ? ' selected' : '');
+      btn.textContent = label;
       btn.addEventListener('click', () => {
-        this.pickerMode = btn.dataset.mode as PickerMode;
-        picker.querySelectorAll('.mode-opt').forEach((b) => {
-          b.classList.toggle('selected', b === btn);
-          (b.querySelector('.mode-opt-check') as HTMLElement).textContent = b === btn ? '✓' : '';
-        });
-        this.syncGHPill();
+        this.pickerMode = mode;
+        modeRow.querySelectorAll('.pmode-btn').forEach((b) => b.classList.toggle('selected', b === btn));
       });
-    });
+      modeRow.appendChild(btn);
+    }
 
-    picker.querySelectorAll<HTMLButtonElement>('.think-opt').forEach((btn) => {
+    const thinkDefs: { level: ThinkingLevel; label: string }[] = [
+      { level: 'off', label: 'OFF' },
+      { level: 'low', label: 'LOW' },
+      { level: 'medium', label: 'MED' },
+      { level: 'high', label: 'HIGH' },
+    ];
+    thinkRow.innerHTML = '';
+    for (const { level, label } of thinkDefs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pthink-btn' + (this.pickerThinking === level ? ' selected' : '');
+      btn.textContent = label;
       btn.addEventListener('click', () => {
-        this.pickerThinking = btn.dataset.level as ThinkingLevel;
-        picker.querySelectorAll('.think-opt').forEach((b) => b.classList.toggle('selected', b === btn));
-        this.syncGHPill();
+        this.pickerThinking = level;
+        thinkRow.querySelectorAll('.pthink-btn').forEach((b) => b.classList.toggle('selected', b === btn));
       });
-    });
-
-    pill.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const hidden = picker.hidden;
-      picker.hidden = !hidden;
-      if (!hidden) return;
-      const dismiss = (ev: MouseEvent) => {
-        if (!picker.contains(ev.target as Node) && ev.target !== pill) {
-          picker.hidden = true;
-          document.removeEventListener('click', dismiss, true);
-        }
-      };
-      setTimeout(() => document.addEventListener('click', dismiss, true), 0);
-    });
-
-    this.syncGHPill();
-  }
-
-  private syncGHPill(): void {
-    const pill = this.el.querySelector<HTMLElement>('.mode-pill');
-    if (!pill) return;
-    const label = MODE_LABEL[this.pickerMode] ?? this.pickerMode;
-    const thinkSuffix = this.pickerThinking !== 'off' ? ` · ${this.pickerThinking.toUpperCase()}` : '';
-    pill.textContent = label + thinkSuffix;
+      thinkRow.appendChild(btn);
+    }
   }
 
   setBusy(busy: boolean): void {
@@ -305,6 +264,10 @@ export class GreatHallView {
           <label class="gh-task-label" for="gh-task-input">the convening's task</label>
           <textarea id="gh-task-input" class="gh-task-input" rows="3"
             placeholder="Design a passwordless login flow. Plan a launch. Triage an incident. Speak it as you'd speak it to a team."></textarea>
+          <div class="gh-modes">
+            <div class="prompt-mode-row"></div>
+            <div class="prompt-think-row"></div>
+          </div>
           <div class="gh-task-row">
             <span class="gh-task-status"></span>
             <button class="gh-convene" type="button" disabled>CONVENE</button>
@@ -314,6 +277,7 @@ export class GreatHallView {
     `;
 
     this.wireLeaveButton();
+    this.buildGHModeButtons();
 
     const rosterEl = this.el.querySelector('.gh-roster') as HTMLElement;
     rosterEl.appendChild(this.renderRoster());
@@ -419,10 +383,6 @@ export class GreatHallView {
           <h2>THE GREAT HALL</h2>
           <p class="gh-task-echo"></p>
         </div>
-        <div class="room-mode-wrapper">
-          <button class="mode-pill mode-pill-shown" type="button" aria-label="change permission mode and thinking level"></button>
-          <div class="mode-picker" hidden></div>
-        </div>
         <div class="gh-activity">
           <span class="gh-session-cost"></span>
         </div>
@@ -441,7 +401,6 @@ export class GreatHallView {
     (this.el.querySelector('.gh-task-echo') as HTMLElement).textContent = `“${task}”`;
 
     this.wireLeaveButton();
-    this.buildGHPicker();
 
     const cancel = this.el.querySelector('.gh-cancel') as HTMLButtonElement;
     cancel.addEventListener('click', () => {

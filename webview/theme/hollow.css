@@ -539,85 +539,52 @@ body {
 .turn-build:active:not(:disabled) { transform: translateY(1px); }
 .turn-build:disabled { opacity: 0.45; cursor: default; }
 
-/* permission-mode pill in the room / great-hall header */
-.mode-pill {
+/* Inline permission-mode + thinking button rows (prompt bar + great hall picker) */
+.prompt-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 0 8px;
+}
+.prompt-mode-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.prompt-think-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.pmode-btn, .pthink-btn {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; letter-spacing: 2.5px;
-  text-transform: lowercase;
-  padding: 5px 10px;
-  border: 1px solid rgba(242,234,215,0.2);
-  color: var(--bone-dim);
+  font-size: 10px; letter-spacing: 1.5px;
+  padding: 5px 0;
   background: transparent;
-  min-width: 58px; text-align: center;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s;
+  border: 1px solid var(--stone-lo);
+  color: var(--stone-hi);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, color 0.12s;
 }
-.mode-pill.mode-pill-shown { opacity: 1; }
-.mode-pill { cursor: pointer; background: none; }
-.mode-pill:hover { border-color: var(--stone-hi); color: var(--bone); }
-
-/* Mode + thinking picker panel */
-.room-mode-wrapper { position: relative; }
-.mode-picker {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--ink-2);
-  border: 1px solid var(--stone);
-  padding: 14px;
-  z-index: 200;
-  min-width: 270px;
+.pmode-btn:hover:not(.selected), .pthink-btn:hover:not(.selected) {
+  border-color: var(--stone);
+  color: var(--bone-dim);
 }
-.mode-picker-group { margin-bottom: 14px; }
-.mode-picker-group:last-child { margin-bottom: 0; }
-.mode-picker-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; letter-spacing: 2px;
-  color: var(--bone-ghost);
-  margin-bottom: 8px;
+.pmode-btn.selected {
+  border-color: var(--accent, var(--bone));
+  color: var(--accent, var(--bone));
 }
-.mode-opt {
-  display: flex; align-items: flex-start; gap: 8px;
-  width: 100%;
-  background: none; border: none;
-  padding: 6px 4px; margin-bottom: 2px;
-  text-align: left; cursor: pointer;
-}
-.mode-opt:hover { background: var(--ink-3); }
-.mode-opt-check {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px; color: var(--accent, var(--bone));
-  min-width: 14px; padding-top: 1px;
-}
-.mode-opt-text { display: flex; flex-direction: column; gap: 2px; }
-.mode-opt-name {
-  font-family: 'Cinzel', serif;
-  font-size: 11px; color: var(--bone-dim);
-  letter-spacing: 1.5px;
-}
-.mode-opt.selected .mode-opt-name { color: var(--bone); }
-.mode-opt-desc {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; color: var(--bone-ghost);
-}
-.think-row { display: flex; gap: 4px; margin-bottom: 6px; }
-.think-opt {
-  flex: 1;
-  background: var(--ink-3); border: 1px solid var(--stone-lo);
-  color: var(--bone-ghost);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; letter-spacing: 1.5px;
-  padding: 5px 0; cursor: pointer;
-}
-.think-opt:hover { border-color: var(--stone); color: var(--bone-dim); }
-.think-opt.selected {
+.pthink-btn.selected {
   border-color: var(--stone-hi);
   color: var(--bone);
-  background: var(--stone-lo);
 }
-.mode-picker-note {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; letter-spacing: 1px; color: var(--bone-ghost);
+/* Great Hall uses same rows inside .gh-modes */
+.gh-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 8px 0;
 }
 .caret {
   display: inline-block;

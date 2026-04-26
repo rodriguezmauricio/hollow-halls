@@ -5,6 +5,7 @@
 
 /** Oracle routing decision — shared between extension host and webview. */
 export type ThinkingLevel = 'off' | 'low' | 'medium' | 'high';
+export type PickerMode = 'plan' | 'acceptEdits' | 'bypassPermissions';
 
 export type OracleDecision =
   | { readonly route: 'room'; readonly roomId: string; readonly rationale: string }
