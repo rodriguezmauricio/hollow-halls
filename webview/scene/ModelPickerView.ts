@@ -20,6 +20,31 @@ const PERMISSION_MODES = [
   { id: 'bypassPermissions' as const, label: 'BYPASS' },
 ];
 
+/** Claude Code CLI model aliases. The CLI accepts short aliases that resolve
+ *  to the latest version of that tier. */
+const CLAUDE_CODE_AGENT_MODELS = [
+  { value: 'opus',   label: 'Opus (most capable, slowest, highest cost)' },
+  { value: 'sonnet', label: 'Sonnet (balanced — recommended)' },
+  { value: 'haiku',  label: 'Haiku (fastest, lowest cost)' },
+];
+const CLAUDE_CODE_MOD_MODELS = [
+  { value: 'haiku',  label: 'Haiku (recommended for moderator)' },
+  { value: 'sonnet', label: 'Sonnet' },
+  { value: 'opus',   label: 'Opus' },
+];
+
+/** Anthropic API model IDs. Keep these in sync with anthropic SDK availability. */
+const ANTHROPIC_AGENT_MODELS = [
+  { value: 'claude-opus-4-7',           label: 'Opus 4.7' },
+  { value: 'claude-sonnet-4-6',         label: 'Sonnet 4.6 (recommended)' },
+  { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
+];
+const ANTHROPIC_MOD_MODELS = [
+  { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 (recommended)' },
+  { value: 'claude-sonnet-4-6',         label: 'Sonnet 4.6' },
+  { value: 'claude-opus-4-7',           label: 'Opus 4.7' },
+];
+
 export class ModelPickerView {
   readonly el: HTMLDivElement;
   private lastDisabledSingletons: readonly ('oracle' | 'common')[] = [];
@@ -56,12 +81,12 @@ export class ModelPickerView {
     this.showProviderSection(s.provider);
 
     // Anthropic
-    this.el.querySelector<HTMLInputElement>('.mp-ant-model')!.value = s.providers.anthropic.defaultModel;
-    this.el.querySelector<HTMLInputElement>('.mp-ant-mod-model')!.value = s.providers.anthropic.moderatorModel;
+    this.setSelectValue('.mp-ant-model', s.providers.anthropic.defaultModel, ANTHROPIC_AGENT_MODELS[1]!.value);
+    this.setSelectValue('.mp-ant-mod-model', s.providers.anthropic.moderatorModel, ANTHROPIC_MOD_MODELS[0]!.value);
 
     // Claude Code
-    this.el.querySelector<HTMLInputElement>('.mp-cc-model')!.value = s.providers['claude-code'].defaultModel;
-    this.el.querySelector<HTMLInputElement>('.mp-cc-mod-model')!.value = s.providers['claude-code'].moderatorModel;
+    this.setSelectValue('.mp-cc-model', s.providers['claude-code'].defaultModel, 'sonnet');
+    this.setSelectValue('.mp-cc-mod-model', s.providers['claude-code'].moderatorModel, 'haiku');
 
     // Ollama
     this.el.querySelector<HTMLInputElement>('.mp-oll-host')!.value = s.providers.ollama.host;
@@ -73,6 +98,16 @@ export class ModelPickerView {
       b.classList.toggle('selected', b.dataset.mode === s.defaultPermissionMode);
     });
     this.el.querySelector<HTMLInputElement>('.mp-max-turns')!.value = String(s.defaultMaxTurns);
+  }
+
+  /** Set a <select> value, falling back to a known default when the saved
+   *  value is not in the option list (older settings.json from before the
+   *  options were curated). */
+  private setSelectValue(selector: string, value: string, fallback: string): void {
+    const sel = this.el.querySelector<HTMLSelectElement>(selector);
+    if (!sel) return;
+    const has = Array.from(sel.options).some((o) => o.value === value);
+    sel.value = has ? value : fallback;
   }
 
   private showProviderSection(provider: string): void {
@@ -107,6 +142,13 @@ export class ModelPickerView {
       <button class="mp-pmode-btn" type="button" data-mode="${m.id}">${m.label}</button>
     `).join('');
 
+    const opt = (list: { value: string; label: string }[]) =>
+      list.map((o) => `<option value="${o.value}">${o.label}</option>`).join('');
+    const ccAgentOpts = opt(CLAUDE_CODE_AGENT_MODELS);
+    const ccModOpts = opt(CLAUDE_CODE_MOD_MODELS);
+    const antAgentOpts = opt(ANTHROPIC_AGENT_MODELS);
+    const antModOpts = opt(ANTHROPIC_MOD_MODELS);
+
     this.el.innerHTML = `
       <div class="mp-panel">
         <header class="mp-head">
@@ -125,11 +167,11 @@ export class ModelPickerView {
             <div class="mp-field-row">
               <label class="mp-field">
                 <span class="mp-field-label">Agent model</span>
-                <input class="mp-cc-model mp-input" type="text" placeholder="sonnet">
+                <select class="mp-cc-model mp-input mp-select">${ccAgentOpts}</select>
               </label>
               <label class="mp-field">
                 <span class="mp-field-label">Moderator model</span>
-                <input class="mp-cc-mod-model mp-input" type="text" placeholder="haiku">
+                <select class="mp-cc-mod-model mp-input mp-select">${ccModOpts}</select>
               </label>
             </div>
           </div>
@@ -139,11 +181,11 @@ export class ModelPickerView {
             <div class="mp-field-row">
               <label class="mp-field">
                 <span class="mp-field-label">Agent model</span>
-                <input class="mp-ant-model mp-input" type="text" placeholder="claude-sonnet-4-6">
+                <select class="mp-ant-model mp-input mp-select">${antAgentOpts}</select>
               </label>
               <label class="mp-field">
                 <span class="mp-field-label">Moderator model</span>
-                <input class="mp-ant-mod-model mp-input" type="text" placeholder="claude-haiku-4-5-20251001">
+                <select class="mp-ant-mod-model mp-input mp-select">${antModOpts}</select>
               </label>
             </div>
           </div>
@@ -220,8 +262,8 @@ export class ModelPickerView {
         provider: this.selectedProvider(),
         providers: {
           anthropic: {
-            defaultModel:   this.el.querySelector<HTMLInputElement>('.mp-ant-model')!.value.trim() || 'claude-sonnet-4-6',
-            moderatorModel: this.el.querySelector<HTMLInputElement>('.mp-ant-mod-model')!.value.trim() || 'claude-haiku-4-5-20251001',
+            defaultModel:   this.el.querySelector<HTMLSelectElement>('.mp-ant-model')!.value.trim() || 'claude-sonnet-4-6',
+            moderatorModel: this.el.querySelector<HTMLSelectElement>('.mp-ant-mod-model')!.value.trim() || 'claude-haiku-4-5-20251001',
           },
           ollama: {
             host:           this.el.querySelector<HTMLInputElement>('.mp-oll-host')!.value.trim() || 'http://localhost:11434',
@@ -229,8 +271,8 @@ export class ModelPickerView {
             moderatorModel: this.el.querySelector<HTMLInputElement>('.mp-oll-mod-model')!.value.trim() || 'gemma3:4b',
           },
           'claude-code': {
-            defaultModel:   this.el.querySelector<HTMLInputElement>('.mp-cc-model')!.value.trim() || 'sonnet',
-            moderatorModel: this.el.querySelector<HTMLInputElement>('.mp-cc-mod-model')!.value.trim() || 'haiku',
+            defaultModel:   this.el.querySelector<HTMLSelectElement>('.mp-cc-model')!.value.trim() || 'sonnet',
+            moderatorModel: this.el.querySelector<HTMLSelectElement>('.mp-cc-mod-model')!.value.trim() || 'haiku',
           },
         },
         defaultPermissionMode: this.selectedPermissionMode(),

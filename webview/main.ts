@@ -203,10 +203,14 @@ buildingFrame.appendChild(gearBtn);
 
 // ---- Custom room creator ----
 
+/** When true, the next room_created message should transition the open
+ *  creator into edit mode (so the user can add agents without re-opening). */
+let creatorAwaitingNewRoomId = false;
+
 const roomCreator = new RoomCreatorView(document.body, {
   onSave: (name, description, accentColor) => {
-    roomCreator.close();
-    // building frame restored when room_created fires
+    // Keep the creator open — room_created will flip it to edit mode.
+    creatorAwaitingNewRoomId = true;
     send({ type: 'create_room', name, description, accentColor });
   },
   onUpdate: (roomId, name, description, accentColor) => {
@@ -694,7 +698,20 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'room_created': {
       rooms.set(msg.room.id, msg.room);
       addCustomRoomTile(msg.room);
-      buildingFrame.classList.remove('frame-hidden');
+      if (creatorAwaitingNewRoomId && roomCreator.isVisible()) {
+        creatorAwaitingNewRoomId = false;
+        // Flip the open form into edit mode for the new room so the user
+        // can add agents immediately.
+        roomCreator.openEdit({
+          id: msg.room.id,
+          name: msg.room.name,
+          description: msg.room.description,
+          accentColor: msg.room.accentColor,
+          agents: [...msg.room.agents],
+        });
+      } else {
+        buildingFrame.classList.remove('frame-hidden');
+      }
       return;
     }
 

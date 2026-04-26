@@ -24,7 +24,7 @@ export class PromptBar {
   private chipsByAgent = new Map<string, HTMLButtonElement>();
   private activeAgentId: string | null = null;
   private pickerMode: PickerMode;
-  private pickerThinking: ThinkingLevel = 'off';
+  private pickerThinking: ThinkingLevel = 'high';
 
   constructor(private readonly cb: PromptBarCallbacks) {
     this.pickerMode = cb.initialMode ?? 'plan';
@@ -39,12 +39,12 @@ export class PromptBar {
         <div class="prompt-ctrl-sep" aria-hidden="true"></div>
         <div class="pthink-group">
           <div class="pthink-track">
-            <input type="range" class="think-range" min="0" max="3" step="1" value="0">
+            <input type="range" class="think-range" min="0" max="3" step="1" value="3">
             <div class="think-ticks" aria-hidden="true">
               <span>OFF</span><span>LOW</span><span>MED</span><span>HIGH</span>
             </div>
           </div>
-          <span class="think-val">OFF</span>
+          <span class="think-val">HIGH</span>
         </div>
       </div>
       <div class="prompt-input-row">

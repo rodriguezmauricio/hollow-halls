@@ -363,7 +363,19 @@ export class Transcript {
 
     const body = li.querySelector('.turn-body') as HTMLElement;
     body.textContent = turn.text;
-    if (!turn.done) body.appendChild(makeCaret());
+    if (!turn.done) {
+      // Pre-text "thinking" pulse while the model is processing but no
+      // chunks have streamed yet. Replaced by the caret once text arrives.
+      if (turn.text === '') {
+        const pulse = document.createElement('span');
+        pulse.className = 'thinking-pulse';
+        pulse.innerHTML = '<i></i><i></i><i></i>';
+        pulse.setAttribute('aria-label', 'thinking');
+        body.appendChild(pulse);
+      } else {
+        body.appendChild(makeCaret());
+      }
+    }
 
     if (turn.cost) renderCostBadge(li, turn.cost);
     if (turn.planPath) {
