@@ -244,6 +244,13 @@ function wireMessages(
         case 'cancel_room_stream': {
           const ctrl = roomAborts.get(raw.roomId);
           if (ctrl) ctrl.abort();
+          roomAborts.delete(raw.roomId);
+          // Eagerly clear the busy state. On Windows the Claude CLI subprocess
+          // can take a couple of seconds to fully die under shell:true (cmd.exe
+          // shim holds stdout open), so the chain's finally block won't fire
+          // immediately. Signal "done" to the UI now; any late chunks will
+          // still render into the current turn but the prompt bar is unblocked.
+          send(p, { type: 'room_activity', roomId: raw.roomId, busy: false });
           return;
         }
 
