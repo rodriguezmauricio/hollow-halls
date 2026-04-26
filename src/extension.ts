@@ -61,7 +61,29 @@ for (const r of ROOMS) {
 const customRoomMap = new Map<string, Room>();
 
 function allRoomById(id: string): Room | undefined {
+  if (id === 'common') return commonVirtualRoom();
   return ROOM_BY_ID[id] ?? customRoomMap.get(id);
+}
+
+/** Virtual "common" room containing every agent. Used by BUILD from the
+ *  Great Hall: handleSendPrompt looks up the room by id, so 'common' must
+ *  resolve to *something* that contains the agent being built. The agent
+ *  carries its own systemPrompt + skillId, so this works without re-routing. */
+function commonVirtualRoom(): Room {
+  const agents: AgentDef[] = [];
+  for (const r of ROOMS) for (const a of r.agents) agents.push(a);
+  for (const r of customRoomMap.values()) for (const a of r.agents) agents.push(a);
+  return {
+    id: 'common',
+    name: 'The Great Hall',
+    subtitle: '— common room',
+    description: 'Cross-discipline meetings.',
+    accentColor: '#9de0f0',
+    systemPromptShared: '',
+    agents,
+    position: { kind: 'great-hall' },
+    isBuiltIn: true,
+  };
 }
 
 function allRoomsPublic(): import('@/messaging/protocol').RoomPublicInfo[] {
@@ -253,6 +275,8 @@ function wireMessages(
         }
 
         case 'open_room': {
+          // 'common' is the Great Hall meeting host, not a regular room.
+          if (raw.roomId === 'common') return;
           const room = allRoomById(raw.roomId);
           if (!room) return;
           const savedStateJson = context.workspaceState.get<string>(`hollowRoom:${raw.roomId}`);

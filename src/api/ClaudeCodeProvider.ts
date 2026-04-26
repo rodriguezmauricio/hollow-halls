@@ -86,7 +86,7 @@ export class ClaudeCodeProvider implements LlmProvider {
         stderr += chunk;
       });
 
-      const onAbort = () => child?.kill();
+      const onAbort = () => killProcessTree(child);
       args.signal?.addEventListener('abort', onAbort);
 
       try {
@@ -151,6 +151,27 @@ function defaultBinary(): string {
   // On Windows, npm installs `claude.cmd` on PATH. Node's spawn with shell:true
   // handles the .cmd extension; we don't need to specify it.
   return 'claude';
+}
+
+/**
+ * Kill the spawned child and any descendants it created. Plain `child.kill()`
+ * on Windows only signals the cmd.exe shim — not the actual `claude` process
+ * underneath, which keeps streaming and burning tokens. Use taskkill /T /F
+ * to terminate the whole tree. On POSIX, killing the process group does the
+ * same job.
+ */
+function killProcessTree(child: ChildProcess | undefined): void {
+  if (!child || child.killed) return;
+  const pid = child.pid;
+  if (process.platform === 'win32' && pid !== undefined) {
+    try {
+      // Detached spawn so this doesn't get stuck waiting on us.
+      spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore' });
+    } catch {
+      // Fall through to plain kill below.
+    }
+  }
+  try { child.kill('SIGTERM'); } catch { /* already gone */ }
 }
 
 async function writeTempFile(content: string): Promise<string> {
