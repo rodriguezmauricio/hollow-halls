@@ -249,67 +249,40 @@ const roomCreator = new RoomCreatorView(document.body, {
   },
 });
 
-// ---- Council chamber tile ----
-
-const councilSection = (() => {
-  const sec = document.createElement('div');
-  sec.className = 'council-section';
-  sec.hidden = true; // revealed once the council room arrives in init
-  return sec;
-})();
-// Insert above the SVG so The Council sits at the top of the floor plan.
-// `svg` is wrapped in `.building-frame`, not a direct child of `.frame`, so
-// we insert into svg's actual parent — defensive against future DOM shuffles.
-svg.parentElement?.insertBefore(councilSection, svg);
-
-function renderCouncilTile(room: RoomPublicInfo): void {
-  councilSection.innerHTML = '';
-  const tile = document.createElement('div');
-  tile.className = 'council-tile';
-  tile.dataset.room = room.id;
-  tile.innerHTML = `
-    <div class="council-tile-left">
-      <span class="council-tile-name"></span>
-      <span class="council-tile-sub"></span>
-    </div>
-    <div class="council-tile-agents"></div>
-    <span class="council-tile-hint">ENTER ›</span>
-  `;
-  (tile.querySelector('.council-tile-name') as HTMLElement).textContent = room.name;
-  (tile.querySelector('.council-tile-sub') as HTMLElement).textContent = room.subtitle;
-  const agentsEl = tile.querySelector('.council-tile-agents') as HTMLElement;
-  for (const a of room.agents) {
-    const dot = document.createElement('span');
-    dot.className = 'council-agent-name';
-    dot.textContent = a.name;
-    agentsEl.appendChild(dot);
-  }
-  tile.addEventListener('click', () => {
-    send({ type: 'open_room', roomId: room.id });
-  });
-  councilSection.appendChild(tile);
-  councilSection.hidden = false;
-}
-
 // ---- Custom room tiles ----
 
-/** Container for custom room tiles, shown below the building SVG. */
+/** Container for custom room tiles, shown directly under the floor plan SVG.
+ *  Always renders a 3-column grid; the last cell is the "create new room"
+ *  template tile so adding rooms always feels symmetric with the existing ones. */
 const customRoomSection = (() => {
   const sec = document.createElement('div');
   sec.className = 'custom-rooms-section';
   sec.innerHTML = `
     <div class="custom-rooms-header">
-      <span class="custom-rooms-label">CUSTOM ROOMS</span>
-      <button class="new-room-btn" type="button">+ NEW ROOM</button>
+      <span class="custom-rooms-label">YOUR ROOMS</span>
     </div>
     <div class="custom-rooms-grid"></div>
   `;
-  sec.querySelector('.new-room-btn')!.addEventListener('click', () => {
+  return sec;
+})();
+
+/** Empty-template tile that always sits at the end of the grid. Click to
+ *  open the room creator. Keeps the grid visually populated even with zero
+ *  custom rooms. */
+function makeAddRoomTile(): HTMLDivElement {
+  const tile = document.createElement('div');
+  tile.className = 'custom-room-tile custom-room-tile-add';
+  tile.innerHTML = `
+    <div class="crta-plus" aria-hidden="true">+</div>
+    <div class="crta-label">CREATE NEW ROOM</div>
+    <div class="crta-sub">name it · pick an accent · add agents</div>
+  `;
+  tile.addEventListener('click', () => {
     buildingFrame.classList.add('frame-hidden');
     roomCreator.openNew();
   });
-  return sec;
-})();
+  return tile;
+}
 
 // Place custom rooms right under the SVG floor plan (same wrapper),
 // so they read as part of the building rather than a footnote.
@@ -353,12 +326,20 @@ function addCustomRoomTile(room: RoomPublicInfo): void {
   const grid = customRoomSection.querySelector<HTMLElement>('.custom-rooms-grid')!;
   // Remove existing tile for this room (update case).
   grid.querySelector(`[data-room="${CSS.escape(room.id)}"]`)?.remove();
-  grid.appendChild(makeCustomRoomTile(room));
+  // Insert before the trailing add-tile so "create new room" stays last.
+  const addTile = grid.querySelector<HTMLElement>('.custom-room-tile-add');
+  const newTile = makeCustomRoomTile(room);
+  if (addTile) grid.insertBefore(newTile, addTile);
+  else grid.appendChild(newTile);
 }
 
 function removeCustomRoomTile(roomId: string): void {
   customRoomSection.querySelector(`[data-room="${CSS.escape(roomId)}"]`)?.remove();
 }
+
+// Seed the grid with the "create new room" template tile so the section is
+// never empty. addCustomRoomTile always inserts before this tile.
+customRoomSection.querySelector<HTMLElement>('.custom-rooms-grid')!.appendChild(makeAddRoomTile());
 
 // Escape closes whichever view is open. Meetings/streams keep running.
 document.addEventListener('keydown', (e) => {
@@ -439,13 +420,11 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       showProviderBadge(buildingFrame, msg.provider, msg.model);
       cachedSettings = msg.settings;
       applySingletonState(msg.settings.disabledSingletons);
-      // Render tiles for rooms not in the static SVG (council singleton + custom rooms).
+      // Render tiles for custom rooms (not in the static SVG). Council is now
+      // a real SVG tile in the top row, so it's already covered by markLiveRooms.
       msg.rooms
         .filter((r) => !svg.querySelector(`[data-room="${CSS.escape(r.id)}"]`))
-        .forEach((r) => {
-          if (r.id === 'council') renderCouncilTile(r);
-          else addCustomRoomTile(r);
-        });
+        .forEach((r) => addCustomRoomTile(r));
       showFirstRunOverlay();
       return;
 
@@ -676,8 +655,6 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       st.busy = msg.busy;
       const roomGroup = svg.querySelector<SVGGElement>(`.room[data-room="${CSS.escape(msg.roomId)}"]`);
       if (roomGroup) roomGroup.classList.toggle('room-busy', msg.busy);
-      const councilEl = councilSection.querySelector<HTMLElement>(`[data-room="${CSS.escape(msg.roomId)}"]`);
-      if (councilEl) councilEl.classList.toggle('room-busy', msg.busy);
       if (roomView.currentRoomId() === msg.roomId) {
         roomView.setBusy(msg.busy);
       }

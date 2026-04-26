@@ -52,6 +52,10 @@ export function buildingSvg(): string {
       <stop offset="0%" stop-color="#f2ead7" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="#f2ead7" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="glow-council" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#9d7cd8" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#9d7cd8" stop-opacity="0"/>
+    </radialGradient>
 
     <symbol id="hk" viewBox="0 0 16 22">
       <ellipse cx="8" cy="20" rx="6" ry="1.2" fill="#000" opacity="0.45"/>
@@ -82,10 +86,14 @@ export function buildingSvg(): string {
 
   <rect width="800" height="668" fill="#070510"/>
 
-  <!-- ===== TOP ROW: Oracle (left) + Great Hall (right) ===== -->
+  <!-- ===== TOP ROW: Oracle (left) + Great Hall (middle) + Council (right) =====
+       Oracle and Great Hall each carry an SVG matrix transform that scales their
+       authored 370/380px-wide tiles down to ~253px so a third tile (Council)
+       can join the row. Internal coordinates remain unchanged inside the
+       transformed groups. Council is authored from scratch at the right size. -->
 
-  <!-- Oracle's Chamber -->
-  <g class="room oracle room-live" data-room="oracle">
+  <!-- Oracle's Chamber — scaled to ~253×97, anchored at (10, 20) -->
+  <g class="room oracle room-live" data-room="oracle" transform="matrix(0.684 0 0 0.684 -3.68 6.32)">
     <rect x="20" y="20" width="370" height="142" fill="#3a3045"/>
     <rect x="26" y="26" width="358" height="130" fill="#161122"/>
     <ellipse cx="205" cy="91" rx="130" ry="55" fill="url(#glow-oracle)"/>
@@ -118,8 +126,8 @@ export function buildingSvg(): string {
     <text class="enter-hint" x="365" y="40" font-family="IBM Plex Mono, monospace" font-size="8" fill="#9de0f0" letter-spacing="2" text-anchor="end">CONSULT ›</text>
   </g>
 
-  <!-- THE GREAT HALL -->
-  <g class="room common room-live" data-room="common">
+  <!-- THE GREAT HALL — scaled to ~253×95, anchored at (273, 20) -->
+  <g class="room common room-live" data-room="common" transform="matrix(0.666 0 0 0.666 6.6 6.68)">
     <rect x="400" y="20" width="380" height="142" fill="#3a3045"/>
     <rect x="406" y="26" width="368" height="130" fill="#15101e"/>
     <ellipse cx="590" cy="91" rx="160" ry="55" fill="url(#glow-common)"/>
@@ -179,7 +187,46 @@ export function buildingSvg(): string {
     <text class="enter-hint" x="762" y="40" font-family="IBM Plex Mono, monospace" font-size="8" fill="#f2ead7" letter-spacing="2" text-anchor="end">CONVENE ›</text>
   </g>
 
-  <!-- corridor: top tiles → building -->
+  <!-- THE COUNCIL — chamber of advisors, authored at 254×95, anchored at (536, 20) -->
+  <g class="room council room-live" data-room="council">
+    <rect x="536" y="20" width="254" height="95" fill="#3a3045"/>
+    <rect x="542" y="26" width="242" height="83" fill="#1a142e"/>
+    <ellipse cx="663" cy="64" rx="105" ry="32" fill="url(#glow-council)"/>
+
+    <!-- Three tall narrow windows behind the figures -->
+    <path d="M584 30 Q598 22 612 30 L612 50 L584 50 Z" fill="#0e0a18" stroke="#9d7cd8" stroke-opacity="0.45" stroke-width="0.5"/>
+    <path d="M647 28 Q663 18 679 28 L679 52 L647 52 Z" fill="#0e0a18" stroke="#9d7cd8" stroke-opacity="0.55" stroke-width="0.5"/>
+    <path d="M714 30 Q728 22 742 30 L742 50 L714 50 Z" fill="#0e0a18" stroke="#9d7cd8" stroke-opacity="0.45" stroke-width="0.5"/>
+
+    <!-- Round table (flat ellipse) -->
+    <ellipse cx="663" cy="84" rx="80" ry="7" fill="#3a2a4a"/>
+    <ellipse cx="663" cy="81" rx="76" ry="5.5" fill="#5a4070"/>
+    <ellipse cx="663" cy="81" rx="76" ry="5.5" fill="none" stroke="#7a5a90" stroke-opacity="0.5" stroke-width="0.4"/>
+
+    <!-- Three advisor figures (Veil, Sable, Cade) seated around the table -->
+    <g class="room-figure">
+      <g transform="translate(595 60)" class="breath"><use href="#hk" width="13" height="18"/></g>
+      <g transform="translate(656 56)" class="breath b2"><use href="#hk" width="13" height="18"/></g>
+      <g transform="translate(717 60)" class="breath b3"><use href="#hk" width="13" height="18"/></g>
+    </g>
+
+    <!-- Soul-color dots above each figure -->
+    <circle cx="601" cy="56" r="1.6" fill="#9d7cd8" opacity="0.85"/>
+    <circle cx="662" cy="52" r="1.8" fill="#9d7cd8" opacity="0.95">
+      <animate attributeName="opacity" values="0.95;0.55;0.95" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="723" cy="56" r="1.6" fill="#9d7cd8" opacity="0.85"/>
+
+    <!-- Title strip -->
+    <text x="546" y="105" font-family="Cinzel, serif" font-size="9" letter-spacing="3" fill="#f2ead7" opacity="0.85">THE COUNCIL</text>
+    <text x="650" y="105" font-family="IBM Plex Mono, monospace" font-size="6" letter-spacing="0.5" fill="#9d7cd8" opacity="0.75">— advisors</text>
+
+    <rect class="room-tint" x="542" y="26" width="242" height="83"/>
+    <rect class="room-stroke" x="542" y="26" width="242" height="83" fill="none"/>
+    <text class="enter-hint" x="782" y="38" font-family="IBM Plex Mono, monospace" font-size="7" fill="#9d7cd8" letter-spacing="2" text-anchor="end">ADVISE ›</text>
+  </g>
+
+  <!-- corridor: top tiles → building (centered between row and grid) -->
   <rect x="392" y="163" width="16" height="9" fill="#161122"/>
   <rect x="386" y="163" width="6" height="9" fill="#3a3045"/>
   <rect x="408" y="163" width="6" height="9" fill="#3a3045"/>

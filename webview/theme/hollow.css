@@ -1559,18 +1559,6 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   color: var(--bone-dim);
   opacity: 0.6;
 }
-.new-room-btn {
-  background: none;
-  border: 1px solid var(--stone);
-  color: var(--bone-dim);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.new-room-btn:hover { border-color: var(--bone-dim); color: var(--bone); }
 
 .custom-rooms-grid {
   display: grid;
@@ -1580,40 +1568,65 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
 
 .custom-room-tile {
   position: relative;
-  height: 96px;
-  background: var(--ink-3);
-  border: 1px solid var(--stone-lo);
-  border-left: 3px solid var(--accent, var(--orchid));
-  padding: 14px 16px 12px;
+  height: 150px;
+  background: #161122;
+  border: 1px solid #3a3045;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  padding: 14px 16px 12px;
   transition: border-color 0.2s;
+  overflow: hidden;
 }
-.custom-room-tile:hover { border-color: color-mix(in srgb, var(--accent, var(--orchid)) 60%, transparent); }
+/* Subtle accent glow halo, matches built-in rooms' radial gradient */
+.custom-room-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 50% at 50% 45%,
+    color-mix(in srgb, var(--accent, var(--orchid)) 18%, transparent),
+    transparent);
+  pointer-events: none;
+}
+.custom-room-tile:hover {
+  border-color: color-mix(in srgb, var(--accent, var(--orchid)) 70%, transparent);
+}
+.custom-room-tile.room-busy {
+  border-color: var(--accent, var(--orchid));
+}
 .crt-name {
+  position: relative;
   font-family: 'Cinzel', serif;
-  font-size: 9px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 3px;
   color: var(--bone);
+  z-index: 1;
 }
 .crt-desc {
+  position: relative;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 8px;
   color: var(--bone-dim);
-  opacity: 0.6;
-  white-space: nowrap;
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  z-index: 1;
 }
 .crt-hint {
+  position: relative;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 7px;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--accent, var(--orchid));
-  opacity: 0.7;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
 }
+.custom-room-tile:hover .crt-hint { opacity: 0.85; }
 .crt-edit {
   position: absolute;
   top: 6px;
@@ -1621,14 +1634,55 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   background: none;
   border: none;
   color: var(--bone-ghost);
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
-  padding: 2px 4px;
+  padding: 2px 6px;
+  z-index: 2;
 }
-.custom-room-tile:hover .crt-edit { opacity: 0.8; }
-.crt-edit:hover { opacity: 1 !important; color: var(--bone-dim); }
+.custom-room-tile:hover .crt-edit { opacity: 0.85; }
+.crt-edit:hover { opacity: 1 !important; color: var(--bone); }
+
+/* ---- Empty "create new room" template tile ---- */
+.custom-room-tile-add {
+  border: 1px dashed #4a3f5a;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.custom-room-tile-add::before { display: none; }
+.custom-room-tile-add:hover {
+  border-color: var(--bone-dim);
+  background: rgba(157,124,216,0.04);
+}
+.crta-plus {
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  color: var(--bone-dim);
+  opacity: 0.6;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+.crta-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--bone-dim);
+  margin-bottom: 6px;
+}
+.crta-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  color: var(--bone-ghost);
+  opacity: 0.6;
+}
+.custom-room-tile-add:hover .crta-plus,
+.custom-room-tile-add:hover .crta-label { color: var(--bone); opacity: 1; }
 
 /* ===== Room Creator overlay ===== */
 .room-creator-view {
@@ -2147,64 +2201,6 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   border-color: var(--stone);
   color: var(--bone-dim);
 }
-
-/* ---- Council Chamber tile ---- */
-.council-section {
-  padding: 0 0 10px;
-}
-.council-tile {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 14px 20px;
-  border: 1px solid #4a3880;
-  background: #1a142e;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  position: relative;
-}
-.council-tile:hover { border-color: #9d7cd8; background: #1e1836; }
-.council-tile.room-busy { border-color: #9d7cd8; }
-.council-tile-left {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 160px;
-}
-.council-tile-name {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--bone);
-}
-.council-tile-sub {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
-  color: #9d7cd8;
-  opacity: 0.8;
-  letter-spacing: 1px;
-}
-.council-tile-agents {
-  display: flex;
-  gap: 14px;
-  flex: 1;
-}
-.council-agent-name {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  color: var(--bone-dim);
-  opacity: 0.6;
-  letter-spacing: 1px;
-}
-.council-tile-hint {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: #9d7cd8;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.council-tile:hover .council-tile-hint { opacity: 0.8; }
 
 /* ---- Thinking pulse (agent turn before first chunk arrives) ---- */
 .thinking-pulse {
