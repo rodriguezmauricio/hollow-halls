@@ -85,8 +85,34 @@ Contents:
 - `STYLE.md` committed as `a8ab08c`.
 
 ### Follow-ups
-- **Phase 1**: end-to-end UX walkthrough → `UX_REVIEW.md` with
-  prioritised punch list covering all five product requirements.
+- ~~**Phase 1**: end-to-end UX walkthrough → `UX_REVIEW.md`~~ ✓ done (commit `062fc6f`)
+
+---
+
+## 2026-04-26 — Phase 1: UX_REVIEW.md
+
+### Scope
+Code audit across all 24 source files (extension host + webview layer).
+Produced `UX_REVIEW.md` — a prioritised punch list.
+
+### Findings
+- **6 blockers**: 5 product requirements entirely absent (custom rooms,
+  custom agents, live model picker, singleton deactivation, in-product
+  explanations) + one Phase -1 regression (tool-chip-error CSS removed but
+  class still applied → error chips are visually indistinguishable).
+- **10 friction items**: Oracle auto-redirect too fast, mode pill uses
+  internal names with no explanation, BUILD button unexplained, single-room
+  transcripts not persisted, Great Hall "leave" has no rejoin affordance,
+  `maxTokens` capped at 300 for all providers, Oracle stuck on error, etc.
+- **5 nits**: hardcoded "active" status, Ollama cost label, etc.
+
+### Outcome
+- `UX_REVIEW.md` committed as `062fc6f`.
+- Phase 2 order recommended in the document.
+
+### Follow-ups
+- **Phase 2** starts with **B6** (tool-chip-error CSS, ~30 min), then
+  **F5** (Oracle error recovery), then **F8** (maxTokens fix).
 
 ### Working principle adopted this session
 **Commit + document every change.** Every session ends with a
