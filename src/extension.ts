@@ -3,7 +3,7 @@ import { AgentManager } from '@/core/AgentManager';
 import { runChain } from '@/core/RoomChain';
 import { CommonRoom, type Attending } from '@/core/CommonRoom';
 import { resolveAgentCall, providerForModerator } from '@/core/ProviderFactory';
-import { loadSettings, openSettingsInEditor } from '@/core/Settings';
+import { loadSettings, saveSettings, openSettingsInEditor } from '@/core/Settings';
 import { CostTracker, costForStream, formatCost } from '@/core/CostTracker';
 import { SkillsManager } from '@/core/SkillsManager';
 import { savePlan, loadCustomRooms, saveCustomRoom, deleteCustomRoom } from '@/core/Persistence';
@@ -20,6 +20,7 @@ import type {
   AttendingAgent,
   ExtensionMsg,
   RoomPublicInfo,
+  SettingsSnapshot,
   WebviewMsg,
 } from '@/messaging/protocol';
 
@@ -244,6 +245,7 @@ function wireMessages(
             rooms: allRoomsPublic(),
             provider: initProvider,
             model: initModel,
+            settings: settingsSnapshot(initSettings),
           });
           return;
         }
@@ -283,12 +285,15 @@ function wireMessages(
         case 'update_room': {
           const existing = customRoomMap.get(raw.roomId);
           if (!existing) return;
+          // Reload the JSON to preserve agents (not held in-memory on the Room type).
+          const existingJsonForUpdate = await loadCustomRooms().then((rs) => rs.find((r) => r.id === raw.roomId));
           const json = {
             id: raw.roomId,
             name: raw.name.trim() || existing.name,
             description: raw.description.trim(),
             accentColor: raw.accentColor || existing.accentColor,
-            createdAt: new Date().toISOString(),
+            createdAt: existingJsonForUpdate?.createdAt ?? new Date().toISOString(),
+            agents: existingJsonForUpdate?.agents ?? [],
           };
           await saveCustomRoom(json);
           const room = customJsonToRoom(json);
@@ -340,6 +345,26 @@ function wireMessages(
           const updatedRoom2 = customJsonToRoom(updatedJson2);
           customRoomMap.set(raw.roomId, updatedRoom2);
           send(p, { type: 'room_updated', room: toPublic(updatedRoom2) });
+          return;
+        }
+
+        case 'update_settings': {
+          const current = await loadSettings();
+          const updated = {
+            ...current,
+            defaultProvider: raw.provider,
+            providers: raw.providers,
+            defaultPermissionMode: raw.defaultPermissionMode,
+            defaultMaxTurns: raw.defaultMaxTurns,
+          };
+          await saveSettings(updated);
+          const newModel = updated.providers[raw.provider].defaultModel;
+          send(p, {
+            type: 'settings_updated',
+            provider: raw.provider,
+            model: newModel,
+            settings: settingsSnapshot(updated),
+          });
           return;
         }
 
@@ -839,6 +864,17 @@ function providerIdForAgent(
 
 function send(p: vscode.WebviewPanel, msg: ExtensionMsg): void {
   p.webview.postMessage(msg);
+}
+
+function settingsSnapshot(s: import('@/core/Settings').Settings): SettingsSnapshot {
+  return {
+    provider: s.defaultProvider,
+    providers: s.providers,
+    defaultPermissionMode: s.defaultPermissionMode === 'plan' || s.defaultPermissionMode === 'acceptEdits' || s.defaultPermissionMode === 'bypassPermissions'
+      ? s.defaultPermissionMode
+      : 'plan',
+    defaultMaxTurns: s.defaultMaxTurns,
+  };
 }
 
 function toPublic(room: Room): RoomPublicInfo {

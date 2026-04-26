@@ -3,6 +3,8 @@ import { RoomView } from './scene/room/RoomView';
 import { GreatHallView } from './scene/room/GreatHallView';
 import { OracleView } from './scene/room/OracleView';
 import { RoomCreatorView } from './scene/RoomCreatorView';
+import { ModelPickerView } from './scene/ModelPickerView';
+import type { ModelPickerSettings } from './scene/ModelPickerView';
 import type { Turn } from './scene/room/Transcript';
 import type { AgentPublicInfo, ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
 
@@ -162,6 +164,43 @@ const oracleView = new OracleView(document.body, {
   },
 });
 
+// ---- Model / settings picker ----
+
+/** Last known settings — populated on init so the picker can open pre-filled. */
+let cachedSettings: ModelPickerSettings | null = null;
+
+const modelPicker = new ModelPickerView(document.body, {
+  onSave: (s) => {
+    modelPicker.close();
+    buildingFrame.classList.remove('frame-hidden');
+    send({
+      type: 'update_settings',
+      provider: s.provider,
+      providers: s.providers,
+      defaultPermissionMode: s.defaultPermissionMode,
+      defaultMaxTurns: s.defaultMaxTurns,
+    });
+  },
+  onCancel: () => {
+    modelPicker.close();
+    buildingFrame.classList.remove('frame-hidden');
+  },
+});
+
+// Gear button wired after buildingFrame is available.
+const gearBtn = document.createElement('button');
+gearBtn.className = 'settings-gear-btn';
+gearBtn.type = 'button';
+gearBtn.setAttribute('aria-label', 'Settings');
+gearBtn.textContent = '⚙';
+gearBtn.addEventListener('click', () => {
+  if (cachedSettings) {
+    buildingFrame.classList.add('frame-hidden');
+    modelPicker.open(cachedSettings);
+  }
+});
+buildingFrame.appendChild(gearBtn);
+
 // ---- Custom room creator ----
 
 const roomCreator = new RoomCreatorView(document.body, {
@@ -261,7 +300,10 @@ function removeCustomRoomTile(roomId: string): void {
 // Escape closes whichever view is open. Meetings/streams keep running.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if (roomCreator.isVisible()) {
+  if (modelPicker.isVisible()) {
+    modelPicker.close();
+    buildingFrame.classList.remove('frame-hidden');
+  } else if (roomCreator.isVisible()) {
     roomCreator.close();
     buildingFrame.classList.remove('frame-hidden');
   } else if (roomView.isVisible()) {
@@ -332,6 +374,7 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       msg.rooms.forEach((r) => rooms.set(r.id, r));
       markLiveRooms(svg, rooms);
       showProviderBadge(buildingFrame, msg.provider, msg.model);
+      if (msg.settings) cachedSettings = msg.settings;
       // Render tiles for custom rooms (not in the static SVG).
       msg.rooms
         .filter((r) => !svg.querySelector(`[data-room="${CSS.escape(r.id)}"]`))
@@ -624,6 +667,12 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       buildingFrame.classList.remove('frame-hidden');
       // If user was in this room, leave it.
       if (roomView.currentRoomId() === msg.roomId) leaveRoom();
+      return;
+    }
+
+    case 'settings_updated': {
+      showProviderBadge(buildingFrame, msg.provider, msg.model);
+      if (msg.settings) cachedSettings = msg.settings;
       return;
     }
 

@@ -120,6 +120,18 @@ export type WebviewMsg =
     }
   | { readonly type: 'delete_agent'; readonly roomId: string; readonly agentId: string }
   | {
+      /** Update global provider/model settings. */
+      readonly type: 'update_settings';
+      readonly provider: 'anthropic' | 'ollama' | 'claude-code';
+      readonly providers: {
+        readonly anthropic: { readonly defaultModel: string; readonly moderatorModel: string };
+        readonly ollama: { readonly host: string; readonly defaultModel: string; readonly moderatorModel: string };
+        readonly 'claude-code': { readonly defaultModel: string; readonly moderatorModel: string };
+      };
+      readonly defaultPermissionMode: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+      readonly defaultMaxTurns: number;
+    }
+  | {
       /** Persist this room's Turn[] so the extension can restore it on next open.
        *  Sent after each agent_message_complete and on close_room. */
       readonly type: 'save_room_state';
@@ -128,6 +140,18 @@ export type WebviewMsg =
       readonly stateJson: string;
     };
 
+/** Snapshot of editable global settings sent to the webview for the picker. */
+export interface SettingsSnapshot {
+  readonly provider: 'anthropic' | 'ollama' | 'claude-code';
+  readonly providers: {
+    readonly anthropic: { readonly defaultModel: string; readonly moderatorModel: string };
+    readonly ollama: { readonly host: string; readonly defaultModel: string; readonly moderatorModel: string };
+    readonly 'claude-code': { readonly defaultModel: string; readonly moderatorModel: string };
+  };
+  readonly defaultPermissionMode: 'plan' | 'acceptEdits' | 'bypassPermissions';
+  readonly defaultMaxTurns: number;
+}
+
 export type ExtensionMsg =
   | {
       readonly type: 'init';
@@ -135,6 +159,8 @@ export type ExtensionMsg =
       /** Active provider + model so the floor plan can show a status badge. */
       readonly provider: 'anthropic' | 'ollama' | 'claude-code';
       readonly model: string;
+      /** Full settings snapshot for the model picker. */
+      readonly settings: SettingsSnapshot;
     }
   | {
       readonly type: 'room_opened';
@@ -242,6 +268,12 @@ export type ExtensionMsg =
   | { readonly type: 'room_created'; readonly room: RoomPublicInfo }
   | { readonly type: 'room_updated'; readonly room: RoomPublicInfo }
   | { readonly type: 'room_deleted'; readonly roomId: string }
+  | {
+      readonly type: 'settings_updated';
+      readonly provider: 'anthropic' | 'ollama' | 'claude-code';
+      readonly model: string;
+      readonly settings: SettingsSnapshot;
+    }
   | {
       /** Chain hop: agent A handed off to agent B in the same room.
        *  Cosmetic — webview draws a "→ B" marker between turns. */
