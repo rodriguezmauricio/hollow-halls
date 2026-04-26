@@ -573,12 +573,16 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
+}
+.pthink-track {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 112px;
 }
 .think-range {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   -webkit-appearance: none;
   appearance: none;
   height: 2px;
@@ -589,7 +593,7 @@ body {
 .think-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 10px; height: 10px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--stone-hi);
   cursor: pointer;
@@ -597,12 +601,24 @@ body {
 }
 .think-range:hover::-webkit-slider-thumb,
 .think-range:focus::-webkit-slider-thumb { background: var(--bone); }
+.think-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+.think-ticks span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.3px;
+  color: var(--stone);
+  line-height: 1;
+}
 .think-val {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; letter-spacing: 1.5px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--stone-hi);
-  width: 36px;
-  text-align: right;
+  width: 28px;
+  text-align: left;
   flex-shrink: 0;
 }
 /* Great Hall reuses .prompt-controls inside .gh-modes */
