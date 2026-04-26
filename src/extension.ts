@@ -308,6 +308,7 @@ async function handleSendPrompt(
           skillsDir: call.skillsDir,
           maxTurns: call.maxTurns,
           maxTokens: call.maxTokens,
+          thinking: msg.thinking,
           signal: roomCtrl.signal,
         },
         {
@@ -411,7 +412,7 @@ async function handleConvene(
   const common = new CommonRoom(context, settings, skills);
   try {
     await common.convene(
-      { meetingId, task: msg.task, attending },
+      { meetingId, task: msg.task, attending, permissionMode: msg.permissionMode, thinking: msg.thinking },
       {
         onModeratorPick: (agentId, rationale) =>
           send(p, { type: 'moderator_pick', meetingId, agentId, rationale }),

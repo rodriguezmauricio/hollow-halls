@@ -46,6 +46,9 @@ export interface StreamArgs {
 
   /** Fired when Claude Code emits a tool_use / tool_result event. */
   readonly onToolUse?: (event: ToolUseEvent) => void;
+
+  /** Extended thinking level. Anthropic API only; other providers ignore it. */
+  readonly thinking?: 'off' | 'low' | 'medium' | 'high';
 }
 
 export interface StreamResult {

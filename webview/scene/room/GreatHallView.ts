@@ -1,7 +1,18 @@
-import type { AgentPublicInfo, AttendingAgent } from '@/messaging/protocol';
+import type { AgentPublicInfo, AttendingAgent, ThinkingLevel } from '@/messaging/protocol';
 import { agentSprite } from '../Agent';
 import { buildGreatHallScene } from './scenes';
 import { Transcript, type Turn, type TurnAgentCost, type TurnToolUse } from './Transcript';
+import type { PickerMode } from './RoomView';
+
+const MODE_LABEL: Record<string, string> = {
+  plan: 'PLAN', acceptEdits: 'EDIT', bypassPermissions: 'BYPASS',
+};
+const MODE_DESC: Record<string, string> = {
+  plan: 'Explores first · BUILD to execute',
+  acceptEdits: 'Edits files directly without approval',
+  bypassPermissions: 'Runs commands without approval prompts',
+};
+const THINK_LABEL: Record<ThinkingLevel, string> = { off: 'OFF', low: 'LOW', medium: 'MED', high: 'HIGH' };
 
 export interface GreatHallRosterGroup {
   readonly roomId: string;
@@ -54,6 +65,8 @@ export class GreatHallView {
   private awaitingFirstChunk = new Set<string>();
   /** Teardown handlers (resizer listeners, etc.) attached on renderMeeting. */
   private teardown: Array<() => void> = [];
+  private pickerMode: PickerMode = 'plan';
+  private pickerThinking: ThinkingLevel = 'off';
 
   constructor(private readonly host: HTMLElement, private readonly cb: GreatHallCallbacks) {
     this.el = document.createElement('div');
@@ -65,6 +78,9 @@ export class GreatHallView {
   isVisible(): boolean {
     return this.el.classList.contains('open');
   }
+
+  selectedMode(): PickerMode { return this.pickerMode; }
+  selectedThinking(): ThinkingLevel { return this.pickerThinking; }
 
   /** True when there's a running meeting or a summary awaiting review. */
   hasMeeting(): boolean {
@@ -160,16 +176,83 @@ export class GreatHallView {
   }
 
   setMode(mode?: string): void {
+    if (mode && (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions')) {
+      this.pickerMode = mode as PickerMode;
+      this.buildGHPicker();
+    }
+    this.syncGHPill();
+  }
+
+  private buildGHPicker(): void {
+    const picker = this.el.querySelector<HTMLElement>('.mode-picker');
+    const pill = this.el.querySelector<HTMLButtonElement>('.mode-pill');
+    if (!picker || !pill) return;
+
+    picker.innerHTML = `
+      <div class="mode-picker-group">
+        <div class="mode-picker-label">PERMISSION MODE</div>
+        ${(['plan', 'acceptEdits', 'bypassPermissions'] as PickerMode[]).map((m) => `
+          <button class="mode-opt${this.pickerMode === m ? ' selected' : ''}" data-mode="${m}" type="button">
+            <span class="mode-opt-check">${this.pickerMode === m ? '✓' : ''}</span>
+            <div class="mode-opt-text">
+              <span class="mode-opt-name">${MODE_LABEL[m]}</span>
+              <span class="mode-opt-desc">${MODE_DESC[m]}</span>
+            </div>
+          </button>`).join('')}
+      </div>
+      <div class="mode-picker-group">
+        <div class="mode-picker-label">THINKING</div>
+        <div class="think-row">
+          ${(['off', 'low', 'medium', 'high'] as ThinkingLevel[]).map((l) => `
+            <button class="think-opt${this.pickerThinking === l ? ' selected' : ''}" data-level="${l}" type="button">${THINK_LABEL[l]}</button>
+          `).join('')}
+        </div>
+        <div class="mode-picker-note">Extended thinking · Anthropic API</div>
+      </div>
+    `;
+
+    picker.querySelectorAll<HTMLButtonElement>('.mode-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.pickerMode = btn.dataset.mode as PickerMode;
+        picker.querySelectorAll('.mode-opt').forEach((b) => {
+          b.classList.toggle('selected', b === btn);
+          (b.querySelector('.mode-opt-check') as HTMLElement).textContent = b === btn ? '✓' : '';
+        });
+        this.syncGHPill();
+      });
+    });
+
+    picker.querySelectorAll<HTMLButtonElement>('.think-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.pickerThinking = btn.dataset.level as ThinkingLevel;
+        picker.querySelectorAll('.think-opt').forEach((b) => b.classList.toggle('selected', b === btn));
+        this.syncGHPill();
+      });
+    });
+
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const hidden = picker.hidden;
+      picker.hidden = !hidden;
+      if (!hidden) return;
+      const dismiss = (ev: MouseEvent) => {
+        if (!picker.contains(ev.target as Node) && ev.target !== pill) {
+          picker.hidden = true;
+          document.removeEventListener('click', dismiss, true);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', dismiss, true), 0);
+    });
+
+    this.syncGHPill();
+  }
+
+  private syncGHPill(): void {
     const pill = this.el.querySelector<HTMLElement>('.mode-pill');
     if (!pill) return;
-    if (!mode) {
-      pill.textContent = '';
-      pill.classList.remove('mode-pill-shown');
-      return;
-    }
-    pill.textContent = mode;
-    pill.dataset.mode = mode;
-    pill.classList.add('mode-pill-shown');
+    const label = MODE_LABEL[this.pickerMode] ?? this.pickerMode;
+    const thinkSuffix = this.pickerThinking !== 'off' ? ` · ${this.pickerThinking.toUpperCase()}` : '';
+    pill.textContent = label + thinkSuffix;
   }
 
   setBusy(busy: boolean): void {
@@ -336,7 +419,10 @@ export class GreatHallView {
           <h2>THE GREAT HALL</h2>
           <p class="gh-task-echo"></p>
         </div>
-        <div class="mode-pill" aria-label="permission mode"></div>
+        <div class="room-mode-wrapper">
+          <button class="mode-pill mode-pill-shown" type="button" aria-label="change permission mode and thinking level"></button>
+          <div class="mode-picker" hidden></div>
+        </div>
         <div class="gh-activity">
           <span class="gh-session-cost"></span>
         </div>
@@ -355,6 +441,7 @@ export class GreatHallView {
     (this.el.querySelector('.gh-task-echo') as HTMLElement).textContent = `“${task}”`;
 
     this.wireLeaveButton();
+    this.buildGHPicker();
 
     const cancel = this.el.querySelector('.gh-cancel') as HTMLButtonElement;
     cancel.addEventListener('click', () => {

@@ -37,14 +37,14 @@ const roomStates = new Map<string, RoomState>();
  *  agent_message_complete, if mode === 'plan' we attach a BUILD button. */
 interface PendingAgentTurn {
   prompt: string;
-  mode: 'plan' | 'acceptEdits';
+  mode: 'plan' | 'acceptEdits' | 'bypassPermissions';
 }
 const pendingByAgent = new Map<string, PendingAgentTurn>();
 function pkey(roomId: string, agentId: string) { return `${roomId}|${agentId}`; }
 
 /** Current display mode per room (drives the header pill). Heuristic — the
  *  extension decides the real mode; we mirror it best-effort. */
-const currentModeByRoom = new Map<string, 'plan' | 'acceptEdits'>();
+const currentModeByRoom = new Map<string, 'plan' | 'acceptEdits' | 'bypassPermissions'>();
 
 function stateFor(id: string): RoomState {
   let s = roomStates.get(id);
@@ -67,10 +67,11 @@ const roomView = new RoomView(document.body, {
     send({ type: 'close_room' });
   },
   onSend: (roomId, agentIds, prompt) => {
-    for (const id of agentIds) pendingByAgent.set(pkey(roomId, id), { prompt, mode: 'plan' });
-    currentModeByRoom.set(roomId, 'plan');
-    roomView.setMode('plan');
-    send({ type: 'send_prompt', roomId, agentIds, prompt });
+    const mode = roomView.selectedMode();
+    const thinking = roomView.selectedThinking();
+    for (const id of agentIds) pendingByAgent.set(pkey(roomId, id), { prompt, mode });
+    currentModeByRoom.set(roomId, mode);
+    send({ type: 'send_prompt', roomId, agentIds, prompt, permissionMode: mode, thinking });
   },
   onBuild: (roomId, agentId, prompt) => {
     pendingByAgent.set(pkey(roomId, agentId), { prompt, mode: 'acceptEdits' });
@@ -92,12 +93,11 @@ const greatHall = new GreatHallView(document.body, {
     send({ type: 'close_great_hall' });
   },
   onConvene: (picks, task) => {
-    // Each attending agent will speak with this task as its prompt; register
-    // one pending entry per agent so BUILD can attach after each plan turn.
-    for (const p of picks) pendingByAgent.set(pkey('common', p.agentId), { prompt: task, mode: 'plan' });
-    currentModeByRoom.set('common', 'plan');
-    greatHall.setMode('plan');
-    send({ type: 'convene', picks, task });
+    const mode = greatHall.selectedMode();
+    const thinking = greatHall.selectedThinking();
+    for (const p of picks) pendingByAgent.set(pkey('common', p.agentId), { prompt: task, mode });
+    currentModeByRoom.set('common', mode);
+    send({ type: 'convene', picks, task, permissionMode: mode, thinking });
   },
   onCancelMeeting: (meetingId) => {
     send({ type: 'cancel_meeting', meetingId });

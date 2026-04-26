@@ -4,6 +4,8 @@
  */
 
 /** Oracle routing decision — shared between extension host and webview. */
+export type ThinkingLevel = 'off' | 'low' | 'medium' | 'high';
+
 export type OracleDecision =
   | { readonly route: 'room'; readonly roomId: string; readonly rationale: string }
   | {
@@ -63,6 +65,7 @@ export type WebviewMsg =
       /** Optional mode override ('acceptEdits' triggered by a BUILD button). */
       readonly permissionMode?:
         | 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+      readonly thinking?: ThinkingLevel;
     }
   | {
       /** Re-send the most recent user prompt to the same agent in acceptEdits.
@@ -79,6 +82,8 @@ export type WebviewMsg =
       /** Selected participants, each as {roomId, agentId}. */
       readonly picks: ReadonlyArray<{ readonly roomId: string; readonly agentId: string }>;
       readonly task: string;
+      readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+      readonly thinking?: ThinkingLevel;
     }
   | { readonly type: 'cancel_meeting'; readonly meetingId: string }
   | { readonly type: 'cancel_room_stream'; readonly roomId: string }

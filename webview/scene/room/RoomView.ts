@@ -1,7 +1,10 @@
 import type { RoomPublicInfo } from '@/messaging/protocol';
+import type { ThinkingLevel } from '@/messaging/protocol';
 import { buildRoomScene } from './scenes';
 import { Transcript, type Turn, type TurnAgentCost, type TurnToolUse } from './Transcript';
 import { PromptBar } from './PromptBar';
+
+export type PickerMode = 'plan' | 'acceptEdits' | 'bypassPermissions';
 
 export interface RoomViewCallbacks {
   readonly onLeave: () => void;
@@ -9,6 +12,16 @@ export interface RoomViewCallbacks {
   readonly onBuild: (roomId: string, agentId: string, prompt: string) => void;
   readonly onStop: (roomId: string) => void;
 }
+
+const MODE_LABEL: Record<string, string> = {
+  plan: 'PLAN', acceptEdits: 'EDIT', bypassPermissions: 'BYPASS', default: 'DEFAULT', dontAsk: "DON'T ASK",
+};
+const MODE_DESC: Record<string, string> = {
+  plan: 'Explores first · BUILD to execute',
+  acceptEdits: 'Edits files directly without approval',
+  bypassPermissions: 'Runs commands without approval prompts',
+};
+const THINK_LABEL: Record<ThinkingLevel, string> = { off: 'OFF', low: 'LOW', medium: 'MED', high: 'HIGH' };
 
 /**
  * The room interior. Renders the per-room scene (floor, walls, props, table,
@@ -23,6 +36,8 @@ export class RoomView {
   private promptBar!: PromptBar;
   private room?: RoomPublicInfo;
   private busy = false;
+  private pickerMode: PickerMode = 'plan';
+  private pickerThinking: ThinkingLevel = 'off';
   /** Agents who've been told to think but haven't emitted their first chunk. */
   private awaitingFirstChunk = new Set<string>();
   /** Teardown handlers (resizer listeners) attached on open(). */
@@ -43,6 +58,14 @@ export class RoomView {
     return this.room?.id;
   }
 
+  selectedMode(): PickerMode {
+    return this.pickerMode;
+  }
+
+  selectedThinking(): ThinkingLevel {
+    return this.pickerThinking;
+  }
+
   open(room: RoomPublicInfo, history: Turn[], busy: boolean, mode?: string): void {
     this.runTeardown();
     this.room = room;
@@ -54,7 +77,10 @@ export class RoomView {
           <h2 class="room-name"></h2>
           <p class="room-sub"></p>
         </div>
-        <div class="mode-pill" aria-label="permission mode"></div>
+        <div class="room-mode-wrapper">
+          <button class="mode-pill mode-pill-shown" type="button" aria-label="change permission mode and thinking level"></button>
+          <div class="mode-picker" hidden></div>
+        </div>
         <button class="room-stop" type="button" aria-label="stop agent" hidden>&#x25A0; STOP</button>
         <div class="room-activity" aria-live="polite"></div>
       </header>
@@ -74,6 +100,13 @@ export class RoomView {
     this.stage = this.el.querySelector('.room-stage') as HTMLDivElement;
     this.stage.innerHTML = buildRoomScene(room);
 
+    // Picker
+    if (mode && (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions')) {
+      this.pickerMode = mode as PickerMode;
+    }
+    this.buildPicker();
+    this.syncPill();
+
     // Transcript + prompt bar
     const agentIndex = new Map(room.agents.map((a) => [a.id, a] as const));
     this.transcript = new Transcript({ accent: room.accentColor, agents: agentIndex });
@@ -88,25 +121,92 @@ export class RoomView {
 
     this.setBusy(busy);
     this.wireResizer();
-    this.setMode(mode);
 
     this.el.classList.add('open');
     this.el.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.promptBar.focus());
   }
 
-  /** Set the permission-mode pill in the header. */
-  setMode(mode?: string): void {
+  private buildPicker(): void {
+    const picker = this.el.querySelector<HTMLElement>('.mode-picker');
+    const pill = this.el.querySelector<HTMLButtonElement>('.mode-pill');
+    if (!picker || !pill) return;
+
+    picker.innerHTML = `
+      <div class="mode-picker-group">
+        <div class="mode-picker-label">PERMISSION MODE</div>
+        ${(['plan', 'acceptEdits', 'bypassPermissions'] as PickerMode[]).map((m) => `
+          <button class="mode-opt${this.pickerMode === m ? ' selected' : ''}" data-mode="${m}" type="button">
+            <span class="mode-opt-check">${this.pickerMode === m ? '✓' : ''}</span>
+            <div class="mode-opt-text">
+              <span class="mode-opt-name">${MODE_LABEL[m]}</span>
+              <span class="mode-opt-desc">${MODE_DESC[m]}</span>
+            </div>
+          </button>`).join('')}
+      </div>
+      <div class="mode-picker-group">
+        <div class="mode-picker-label">THINKING</div>
+        <div class="think-row">
+          ${(['off', 'low', 'medium', 'high'] as ThinkingLevel[]).map((l) => `
+            <button class="think-opt${this.pickerThinking === l ? ' selected' : ''}" data-level="${l}" type="button">${THINK_LABEL[l]}</button>
+          `).join('')}
+        </div>
+        <div class="mode-picker-note">Extended thinking · Anthropic API</div>
+      </div>
+    `;
+
+    picker.querySelectorAll<HTMLButtonElement>('.mode-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.pickerMode = btn.dataset.mode as PickerMode;
+        picker.querySelectorAll('.mode-opt').forEach((b) => {
+          b.classList.toggle('selected', b === btn);
+          (b.querySelector('.mode-opt-check') as HTMLElement).textContent = b === btn ? '✓' : '';
+        });
+        this.syncPill();
+      });
+    });
+
+    picker.querySelectorAll<HTMLButtonElement>('.think-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.pickerThinking = btn.dataset.level as ThinkingLevel;
+        picker.querySelectorAll('.think-opt').forEach((b) => b.classList.toggle('selected', b === btn));
+        this.syncPill();
+      });
+    });
+
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const hidden = picker.hidden;
+      picker.hidden = !hidden;
+      if (!hidden) return;
+      // Dismiss on outside click
+      const dismiss = (ev: MouseEvent) => {
+        if (!picker.contains(ev.target as Node) && ev.target !== pill) {
+          picker.hidden = true;
+          document.removeEventListener('click', dismiss, true);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', dismiss, true), 0);
+    });
+  }
+
+  private syncPill(): void {
     const pill = this.el.querySelector<HTMLElement>('.mode-pill');
     if (!pill) return;
-    if (!mode) {
-      pill.textContent = '';
-      pill.classList.remove('mode-pill-shown');
-      return;
+    const label = MODE_LABEL[this.pickerMode] ?? this.pickerMode;
+    const thinkSuffix = this.pickerThinking !== 'off' ? ` · ${this.pickerThinking.toUpperCase()}` : '';
+    pill.textContent = label + thinkSuffix;
+  }
+
+  /** Set the permission-mode pill in the header (called externally for BUILD feedback). */
+  setMode(mode?: string): void {
+    if (!mode) return;
+    if (mode === 'plan' || mode === 'acceptEdits' || mode === 'bypassPermissions') {
+      this.pickerMode = mode as PickerMode;
+      // Re-render the picker to reflect the new selection
+      this.buildPicker();
     }
-    pill.textContent = mode;
-    pill.dataset.mode = mode;
-    pill.classList.add('mode-pill-shown');
+    this.syncPill();
   }
 
   /** Render a tool-use block in the transcript + append it to the retained state. */

@@ -16,6 +16,7 @@ export interface RunRequest {
   readonly skillsDir?: string;
   readonly maxTurns?: number;
   readonly maxTokens?: number;
+  readonly thinking?: 'off' | 'low' | 'medium' | 'high';
   readonly signal?: AbortSignal;
 }
 
@@ -39,6 +40,7 @@ export class AgentManager {
         system,
         userPrompt: req.userPrompt,
         maxTokens: req.maxTokens ?? 1000,
+        thinking: req.thinking,
         onTextChunk: events.onChunk,
         onToolUse: events.onToolUse,
         signal: req.signal,

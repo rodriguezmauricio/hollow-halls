@@ -37,6 +37,8 @@ export interface ConveneRequest {
   readonly attending: readonly Attending[];
   /** Hard cap — default 6 per BUILD_PLAN.md §M4 acceptance. */
   readonly maxTurns?: number;
+  readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+  readonly thinking?: 'off' | 'low' | 'medium' | 'high';
 }
 
 export interface ConveneEvents {
@@ -142,6 +144,7 @@ export class CommonRoom {
             system,
             userPrompt,
             maxTokens: call.maxTokens,
+            thinking: req.thinking,
             signal,
             onTextChunk: (chunk) => {
               full += chunk;
@@ -150,7 +153,7 @@ export class CommonRoom {
             onToolUse: events.onAgentToolUse
               ? (event) => events.onAgentToolUse!(speaker.agent.id, event)
               : undefined,
-            permissionMode: call.permissionMode,
+            permissionMode: req.permissionMode ?? call.permissionMode,
             skillsDir: call.skillsDir,
             maxTurns: call.maxTurns,
           });
