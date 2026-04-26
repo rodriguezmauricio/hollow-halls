@@ -1541,3 +1541,210 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
 
 /* PromptBar: tuck the ? snugly after the mode buttons */
 .pmode-help-btn { margin-left: 4px; }
+
+/* ===== Custom rooms section ===== */
+.custom-rooms-section {
+  margin-top: 20px;
+}
+.custom-rooms-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.custom-rooms-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--bone-dim);
+  opacity: 0.6;
+}
+.new-room-btn {
+  background: none;
+  border: 1px solid var(--stone);
+  color: var(--bone-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.new-room-btn:hover { border-color: var(--bone-dim); color: var(--bone); }
+
+.custom-rooms-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.custom-room-tile {
+  position: relative;
+  width: 180px;
+  height: 80px;
+  background: var(--ink-3);
+  border: 1px solid var(--stone-lo);
+  border-left: 3px solid var(--accent, var(--orchid));
+  padding: 12px 14px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.2s;
+}
+.custom-room-tile:hover { border-color: color-mix(in srgb, var(--accent, var(--orchid)) 60%, transparent); }
+.crt-name {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--bone);
+}
+.crt-desc {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  color: var(--bone-dim);
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.crt-hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  color: var(--accent, var(--orchid));
+  opacity: 0.7;
+}
+.crt-edit {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--bone-ghost);
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 2px 4px;
+}
+.custom-room-tile:hover .crt-edit { opacity: 0.8; }
+.crt-edit:hover { opacity: 1 !important; color: var(--bone-dim); }
+
+/* ===== Room Creator overlay ===== */
+.room-creator-view {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(7,5,16,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.room-creator-view.open { display: flex; }
+
+.rc-panel {
+  background: var(--ink-2);
+  border: 1px solid var(--stone);
+  width: 420px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  flex-direction: column;
+}
+.rc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--stone-lo);
+}
+.rc-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--bone);
+}
+.rc-cancel-btn {
+  background: none;
+  border: none;
+  color: var(--bone-ghost);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.rc-cancel-btn:hover { color: var(--bone-dim); }
+
+.rc-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.rc-field { display: flex; flex-direction: column; gap: 5px; }
+.rc-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--bone-dim);
+  opacity: 0.7;
+}
+.rc-name,
+.rc-desc {
+  background: var(--ink-3);
+  border: 1px solid var(--stone-lo);
+  color: var(--bone);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 8px 10px;
+  resize: none;
+}
+.rc-name:focus, .rc-desc:focus { outline: none; border-color: var(--stone-hi); }
+
+.rc-color-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rc-color-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  border-radius: 2px;
+}
+.rc-color-swatch.selected { border-color: var(--bone); }
+.rc-color-swatch:hover { border-color: var(--bone-dim); }
+
+.rc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--stone-lo);
+  gap: 10px;
+}
+.rc-status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  color: var(--sec);
+  flex: 1;
+}
+.rc-actions { display: flex; gap: 8px; align-items: center; }
+.rc-save {
+  background: none;
+  border: 1px solid var(--bone-dim);
+  color: var(--bone);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rc-save:hover { background: var(--stone-lo); }
+.rc-delete {
+  background: none;
+  border: 1px solid var(--sec);
+  color: var(--sec);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.rc-delete:hover { opacity: 1; }

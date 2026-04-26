@@ -91,6 +91,20 @@ export type WebviewMsg =
   | { readonly type: 'oracle_consult'; readonly prompt: string }
   | { readonly type: 'open_file'; readonly path: string }
   | {
+      readonly type: 'create_room';
+      readonly name: string;
+      readonly description: string;
+      readonly accentColor: string;
+    }
+  | { readonly type: 'delete_room'; readonly roomId: string }
+  | {
+      readonly type: 'update_room';
+      readonly roomId: string;
+      readonly name: string;
+      readonly description: string;
+      readonly accentColor: string;
+    }
+  | {
       /** Persist this room's Turn[] so the extension can restore it on next open.
        *  Sent after each agent_message_complete and on close_room. */
       readonly type: 'save_room_state';
@@ -210,6 +224,9 @@ export type ExtensionMsg =
     }
   | { readonly type: 'oracle_thinking' }
   | { readonly type: 'oracle_response'; readonly decision: OracleDecision }
+  | { readonly type: 'room_created'; readonly room: RoomPublicInfo }
+  | { readonly type: 'room_updated'; readonly room: RoomPublicInfo }
+  | { readonly type: 'room_deleted'; readonly roomId: string }
   | {
       /** Chain hop: agent A handed off to agent B in the same room.
        *  Cosmetic — webview draws a "→ B" marker between turns. */

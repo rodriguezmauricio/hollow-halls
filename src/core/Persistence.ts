@@ -1,5 +1,65 @@
 import * as vscode from 'vscode';
 
+// ===== Custom Room persistence =====
+
+export interface CustomRoomJson {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly accentColor: string;
+  readonly createdAt: string;
+}
+
+export async function loadCustomRooms(): Promise<CustomRoomJson[]> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) return [];
+  const dirUri = vscode.Uri.joinPath(folder.uri, '.hollow', 'rooms');
+  let entries: [string, vscode.FileType][];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(dirUri);
+  } catch {
+    return [];
+  }
+  const rooms: CustomRoomJson[] = [];
+  for (const [name, type] of entries) {
+    if (type !== vscode.FileType.File || !name.endsWith('.json')) continue;
+    try {
+      const bytes = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dirUri, name));
+      const raw = JSON.parse(new TextDecoder().decode(bytes)) as Partial<CustomRoomJson>;
+      if (typeof raw.id === 'string' && typeof raw.name === 'string') {
+        rooms.push({
+          id: raw.id,
+          name: raw.name,
+          description: raw.description ?? '',
+          accentColor: raw.accentColor ?? '#9de0f0',
+          createdAt: raw.createdAt ?? new Date().toISOString(),
+        });
+      }
+    } catch {
+      // skip malformed files
+    }
+  }
+  return rooms;
+}
+
+export async function saveCustomRoom(room: CustomRoomJson): Promise<void> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) return;
+  const dirUri = vscode.Uri.joinPath(folder.uri, '.hollow', 'rooms');
+  try { await vscode.workspace.fs.createDirectory(dirUri); } catch { /* exists */ }
+  const fileUri = vscode.Uri.joinPath(dirUri, `${room.id}.json`);
+  await vscode.workspace.fs.writeFile(fileUri, new TextEncoder().encode(JSON.stringify(room, null, 2) + '\n'));
+}
+
+export async function deleteCustomRoom(id: string): Promise<void> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) return;
+  const fileUri = vscode.Uri.joinPath(folder.uri, '.hollow', 'rooms', `${id}.json`);
+  try { await vscode.workspace.fs.delete(fileUri); } catch { /* already gone */ }
+}
+
+// ===== Transcript + plan persistence =====
+
 export interface TranscriptMessage {
   readonly agentId: string;
   readonly agentName: string;

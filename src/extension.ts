@@ -6,7 +6,7 @@ import { resolveAgentCall, providerForModerator } from '@/core/ProviderFactory';
 import { loadSettings, openSettingsInEditor } from '@/core/Settings';
 import { CostTracker, costForStream, formatCost } from '@/core/CostTracker';
 import { SkillsManager } from '@/core/SkillsManager';
-import { savePlan } from '@/core/Persistence';
+import { savePlan, loadCustomRooms, saveCustomRoom, deleteCustomRoom } from '@/core/Persistence';
 import { consult as oracleConsult } from '@/core/Oracle';
 import { designRoom } from '@/rooms/design';
 import { uiuxRoom } from '@/rooms/uiux';
@@ -52,6 +52,34 @@ const ROOM_BY_ID: Record<string, Room> = Object.fromEntries(ROOMS.map((r) => [r.
 const ALL_AGENTS: Record<string, { room: Room; agent: AgentDef }> = {};
 for (const r of ROOMS) {
   for (const a of r.agents) ALL_AGENTS[a.id] = { room: r, agent: a };
+}
+
+/** Custom rooms loaded from .hollow/rooms/*.json, keyed by id. */
+const customRoomMap = new Map<string, Room>();
+
+function allRoomById(id: string): Room | undefined {
+  return ROOM_BY_ID[id] ?? customRoomMap.get(id);
+}
+
+function allRoomsPublic(): import('@/messaging/protocol').RoomPublicInfo[] {
+  return [...ROOMS, ...customRoomMap.values()].map(toPublic);
+}
+
+const CUSTOM_ROOM_SHARED =
+  'You are an AI assistant in the Hollow Halls. Be specific, direct, and concise.';
+
+function customJsonToRoom(json: import('@/core/Persistence').CustomRoomJson): Room {
+  return {
+    id: json.id,
+    name: json.name,
+    subtitle: 'custom',
+    description: json.description,
+    accentColor: json.accentColor,
+    systemPromptShared: CUSTOM_ROOM_SHARED,
+    agents: [],
+    position: { kind: 'grid', row: 0, col: 0 },
+    isBuiltIn: false,
+  };
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -180,12 +208,17 @@ function wireMessages(
     try {
       switch (raw.type) {
         case 'ready': {
-          const initSettings = await loadSettings();
+          const [initSettings, customJsons] = await Promise.all([
+            loadSettings(),
+            loadCustomRooms(),
+          ]);
+          customRoomMap.clear();
+          for (const json of customJsons) customRoomMap.set(json.id, customJsonToRoom(json));
           const initProvider = initSettings.defaultProvider;
           const initModel = initSettings.providers[initProvider].defaultModel;
           send(p, {
             type: 'init',
-            rooms: ROOMS.map(toPublic),
+            rooms: allRoomsPublic(),
             provider: initProvider,
             model: initModel,
           });
@@ -193,7 +226,7 @@ function wireMessages(
         }
 
         case 'open_room': {
-          const room = ROOM_BY_ID[raw.roomId];
+          const room = allRoomById(raw.roomId);
           if (!room) return;
           const savedStateJson = context.workspaceState.get<string>(`hollowRoom:${raw.roomId}`);
           send(p, { type: 'room_opened', room: toPublic(room), savedStateJson });
@@ -207,6 +240,47 @@ function wireMessages(
           // Best-effort — never block on this.
           void context.workspaceState.update(`hollowRoom:${raw.roomId}`, raw.stateJson);
           return;
+
+        case 'create_room': {
+          const id = `custom_${Date.now().toString(36)}`;
+          const json = {
+            id,
+            name: raw.name.trim() || 'Unnamed Room',
+            description: raw.description.trim(),
+            accentColor: raw.accentColor || '#9de0f0',
+            createdAt: new Date().toISOString(),
+          };
+          await saveCustomRoom(json);
+          const room = customJsonToRoom(json);
+          customRoomMap.set(id, room);
+          send(p, { type: 'room_created', room: toPublic(room) });
+          return;
+        }
+
+        case 'update_room': {
+          const existing = customRoomMap.get(raw.roomId);
+          if (!existing) return;
+          const json = {
+            id: raw.roomId,
+            name: raw.name.trim() || existing.name,
+            description: raw.description.trim(),
+            accentColor: raw.accentColor || existing.accentColor,
+            createdAt: new Date().toISOString(),
+          };
+          await saveCustomRoom(json);
+          const room = customJsonToRoom(json);
+          customRoomMap.set(raw.roomId, room);
+          send(p, { type: 'room_updated', room: toPublic(room) });
+          return;
+        }
+
+        case 'delete_room': {
+          if (!customRoomMap.has(raw.roomId)) return;
+          await deleteCustomRoom(raw.roomId);
+          customRoomMap.delete(raw.roomId);
+          send(p, { type: 'room_deleted', roomId: raw.roomId });
+          return;
+        }
 
         case 'send_prompt':
           await handleSendPrompt(p, context, skills, raw);
@@ -304,7 +378,7 @@ async function handleSendPrompt(
   msg: Extract<WebviewMsg, { type: 'send_prompt' }>,
   opts: SendPromptOpts = {},
 ): Promise<void> {
-  const room = ROOM_BY_ID[msg.roomId];
+  const room = allRoomById(msg.roomId);
   if (!room) {
     send(p, { type: 'error', message: `Unknown room: ${msg.roomId}` });
     return;

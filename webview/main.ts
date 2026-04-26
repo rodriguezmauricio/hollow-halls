@@ -2,6 +2,7 @@ import { mountShell } from './scene/Shell';
 import { RoomView } from './scene/room/RoomView';
 import { GreatHallView } from './scene/room/GreatHallView';
 import { OracleView } from './scene/room/OracleView';
+import { RoomCreatorView } from './scene/RoomCreatorView';
 import type { Turn } from './scene/room/Transcript';
 import type { ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
 
@@ -161,10 +162,95 @@ const oracleView = new OracleView(document.body, {
   },
 });
 
+// ---- Custom room creator ----
+
+const roomCreator = new RoomCreatorView(document.body, {
+  onSave: (name, description, accentColor) => {
+    roomCreator.close();
+    // building frame restored when room_created fires
+    send({ type: 'create_room', name, description, accentColor });
+  },
+  onUpdate: (roomId, name, description, accentColor) => {
+    roomCreator.close();
+    send({ type: 'update_room', roomId, name, description, accentColor });
+  },
+  onDelete: (roomId) => {
+    roomCreator.close();
+    send({ type: 'delete_room', roomId });
+  },
+  onCancel: () => {
+    roomCreator.close();
+    buildingFrame.classList.remove('frame-hidden');
+  },
+});
+
+// ---- Custom room tiles ----
+
+/** Container for custom room tiles, shown below the building SVG. */
+const customRoomSection = (() => {
+  const sec = document.createElement('div');
+  sec.className = 'custom-rooms-section';
+  sec.innerHTML = `
+    <div class="custom-rooms-header">
+      <span class="custom-rooms-label">CUSTOM ROOMS</span>
+      <button class="new-room-btn" type="button">+ NEW ROOM</button>
+    </div>
+    <div class="custom-rooms-grid"></div>
+  `;
+  sec.querySelector('.new-room-btn')!.addEventListener('click', () => {
+    buildingFrame.classList.add('frame-hidden');
+    roomCreator.openNew();
+  });
+  return sec;
+})();
+
+buildingFrame.appendChild(customRoomSection);
+
+function makeCustomRoomTile(room: RoomPublicInfo): HTMLDivElement {
+  const tile = document.createElement('div');
+  tile.className = 'custom-room-tile';
+  tile.dataset.room = room.id;
+  tile.style.setProperty('--accent', room.accentColor);
+  tile.innerHTML = `
+    <div class="crt-name"></div>
+    <div class="crt-desc"></div>
+    <div class="crt-hint">ENTER ›</div>
+    <button class="crt-edit" type="button" aria-label="edit room">✎</button>
+  `;
+  (tile.querySelector('.crt-name') as HTMLElement).textContent = room.name.toUpperCase();
+  (tile.querySelector('.crt-desc') as HTMLElement).textContent =
+    room.description || 'custom room';
+
+  tile.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('.crt-edit')) return;
+    send({ type: 'open_room', roomId: room.id });
+  });
+  tile.querySelector<HTMLButtonElement>('.crt-edit')!.addEventListener('click', (e) => {
+    e.stopPropagation();
+    buildingFrame.classList.add('frame-hidden');
+    roomCreator.openEdit(room.id, room.name, room.description, room.accentColor);
+  });
+  return tile;
+}
+
+function addCustomRoomTile(room: RoomPublicInfo): void {
+  const grid = customRoomSection.querySelector<HTMLElement>('.custom-rooms-grid')!;
+  // Remove existing tile for this room (update case).
+  grid.querySelector(`[data-room="${CSS.escape(room.id)}"]`)?.remove();
+  grid.appendChild(makeCustomRoomTile(room));
+}
+
+function removeCustomRoomTile(roomId: string): void {
+  customRoomSection.querySelector(`[data-room="${CSS.escape(roomId)}"]`)?.remove();
+}
+
 // Escape closes whichever view is open. Meetings/streams keep running.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if (roomView.isVisible()) {
+  if (roomCreator.isVisible()) {
+    roomCreator.close();
+    buildingFrame.classList.remove('frame-hidden');
+  } else if (roomView.isVisible()) {
     leaveRoom();
   } else if (greatHall.isVisible()) {
     greatHall.close();
@@ -232,6 +318,10 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       msg.rooms.forEach((r) => rooms.set(r.id, r));
       markLiveRooms(svg, rooms);
       showProviderBadge(buildingFrame, msg.provider, msg.model);
+      // Render tiles for custom rooms (not in the static SVG).
+      msg.rooms
+        .filter((r) => !svg.querySelector(`[data-room="${CSS.escape(r.id)}"]`))
+        .forEach((r) => addCustomRoomTile(r));
       showFirstRunOverlay();
       return;
 
@@ -498,6 +588,29 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
     case 'oracle_response':
       oracleView.showDecision(msg.decision);
       return;
+
+    case 'room_created': {
+      rooms.set(msg.room.id, msg.room);
+      addCustomRoomTile(msg.room);
+      buildingFrame.classList.remove('frame-hidden');
+      return;
+    }
+
+    case 'room_updated': {
+      rooms.set(msg.room.id, msg.room);
+      addCustomRoomTile(msg.room); // removes old tile, adds updated
+      buildingFrame.classList.remove('frame-hidden');
+      return;
+    }
+
+    case 'room_deleted': {
+      rooms.delete(msg.roomId);
+      removeCustomRoomTile(msg.roomId);
+      buildingFrame.classList.remove('frame-hidden');
+      // If user was in this room, leave it.
+      if (roomView.currentRoomId() === msg.roomId) leaveRoom();
+      return;
+    }
 
     case 'error': {
       console.error('[hollow halls] error:', msg.message);
