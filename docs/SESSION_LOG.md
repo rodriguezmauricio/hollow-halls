@@ -50,12 +50,43 @@ prior sessions before the new "commit every change" rule was adopted:
   is off.
 
 ### Follow-ups (next sessions)
-- **Phase 0**: write `STYLE.md` — a short charter that locks the
-  wireframe-grade approach until the extension is functionally complete.
+- ~~**Phase 0**: write `STYLE.md`~~ ✓ done (commit `a8ab08c`)
 - **Phase 1**: run an end-to-end UX walkthrough and produce
   `UX_REVIEW.md` covering all five new product requirements (custom
   rooms, custom agents, deactivatable singletons, in-product
   explanations, live model picker).
+
+---
+
+## 2026-04-26 — Phase 0: STYLE.md wireframe charter
+
+### Scope
+Created `STYLE.md` at repo root (~107 lines). Purpose: prevent visual
+drift during the wireframe phase (Phases 0–3), not specify final polish.
+
+Contents:
+- **Aesthetic name**: Wireframe Occult — ink-on-bone grid, one room
+  accent as the only warmth.
+- **Canonical palette**: all 17 CSS vars from `hollow.css` with role
+  and when-to-use. No new colours permitted before Phase 4.
+- **Typography**: Cinzel for titles, IBM Plex Mono for body/UI, both
+  bundled locally. No additional font families.
+- **Room interior skeleton**: back-wall + floor + table + N agents +
+  room label only. No new props, no lighting, no enrichment.
+- **Modal/picker chrome**: `--ink-2` background, 1px `--stone` border,
+  16px padding — shared across every overlay.
+- **Empty/loading/error states**: one minimal pattern per state.
+- **Anti-goals list**: what's explicitly off-limits (SVG ornament,
+  raster assets, radial gradients, box-shadow glow, new animations,
+  new colours, new fonts) until Phase 4.
+
+### Outcome
+- No source-code changes — docs only.
+- `STYLE.md` committed as `a8ab08c`.
+
+### Follow-ups
+- **Phase 1**: end-to-end UX walkthrough → `UX_REVIEW.md` with
+  prioritised punch list covering all five product requirements.
 
 ### Working principle adopted this session
 **Commit + document every change.** Every session ends with a
