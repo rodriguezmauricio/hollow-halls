@@ -348,6 +348,19 @@ function wireMessages(
           return;
         }
 
+        case 'toggle_singleton': {
+          const cur = await loadSettings();
+          const isDisabled = cur.disabledSingletons.includes(raw.which);
+          const newDisabled = isDisabled
+            ? cur.disabledSingletons.filter((s) => s !== raw.which)
+            : [...cur.disabledSingletons, raw.which];
+          const toggled = { ...cur, disabledSingletons: newDisabled };
+          await saveSettings(toggled);
+          const model = toggled.providers[toggled.defaultProvider].defaultModel;
+          send(p, { type: 'settings_updated', provider: toggled.defaultProvider, model, settings: settingsSnapshot(toggled) });
+          return;
+        }
+
         case 'update_settings': {
           const current = await loadSettings();
           const updated = {
@@ -356,6 +369,7 @@ function wireMessages(
             providers: raw.providers,
             defaultPermissionMode: raw.defaultPermissionMode,
             defaultMaxTurns: raw.defaultMaxTurns,
+            disabledSingletons: raw.disabledSingletons,
           };
           await saveSettings(updated);
           const newModel = updated.providers[raw.provider].defaultModel;
@@ -391,7 +405,12 @@ function wireMessages(
           );
           return;
 
-        case 'open_great_hall':
+        case 'open_great_hall': {
+          const ghSettings = await loadSettings();
+          if (ghSettings.disabledSingletons.includes('common')) {
+            send(p, { type: 'error', message: 'The Great Hall is currently inactive. Re-enable it in Settings.' });
+            return;
+          }
           send(p, {
             type: 'great_hall_opened',
             roster: ROOMS.map((r) => ({
@@ -407,6 +426,7 @@ function wireMessages(
             })),
           });
           return;
+        }
 
         case 'close_great_hall':
           return;
@@ -434,9 +454,15 @@ function wireMessages(
           return;
         }
 
-        case 'oracle_consult':
+        case 'oracle_consult': {
+          const oSettings = await loadSettings();
+          if (oSettings.disabledSingletons.includes('oracle')) {
+            send(p, { type: 'error', message: 'The Oracle is currently inactive. Re-enable it in Settings.' });
+            return;
+          }
           await handleOracleConsult(p, context, raw.prompt);
           return;
+        }
 
         case 'open_file': {
           const uri = vscode.Uri.file(raw.path);
@@ -874,6 +900,7 @@ function settingsSnapshot(s: import('@/core/Settings').Settings): SettingsSnapsh
       ? s.defaultPermissionMode
       : 'plan',
     defaultMaxTurns: s.defaultMaxTurns,
+    disabledSingletons: s.disabledSingletons,
   };
 }
 

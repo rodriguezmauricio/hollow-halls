@@ -1,18 +1,10 @@
 /** Overlay for changing provider, model, and global defaults. */
+import type { SettingsSnapshot } from '@/messaging/protocol';
 
-export interface ModelPickerSettings {
-  readonly provider: 'anthropic' | 'ollama' | 'claude-code';
-  readonly providers: {
-    readonly anthropic: { readonly defaultModel: string; readonly moderatorModel: string };
-    readonly ollama: { readonly host: string; readonly defaultModel: string; readonly moderatorModel: string };
-    readonly 'claude-code': { readonly defaultModel: string; readonly moderatorModel: string };
-  };
-  readonly defaultPermissionMode: 'plan' | 'acceptEdits' | 'bypassPermissions';
-  readonly defaultMaxTurns: number;
-}
+export type { SettingsSnapshot as ModelPickerSettings };
 
 export interface ModelPickerCallbacks {
-  readonly onSave: (s: ModelPickerSettings) => void;
+  readonly onSave: (s: SettingsSnapshot) => void;
   readonly onCancel: () => void;
 }
 
@@ -30,6 +22,8 @@ const PERMISSION_MODES = [
 
 export class ModelPickerView {
   readonly el: HTMLDivElement;
+  private lastDisabledSingletons: readonly ('oracle' | 'common')[] = [];
+
   constructor(private readonly host: HTMLElement, private readonly cb: ModelPickerCallbacks) {
     this.el = document.createElement('div');
     this.el.className = 'model-picker-view';
@@ -42,7 +36,8 @@ export class ModelPickerView {
     return this.el.classList.contains('open');
   }
 
-  open(settings: ModelPickerSettings): void {
+  open(settings: SettingsSnapshot): void {
+    this.lastDisabledSingletons = settings.disabledSingletons;
     this.populate(settings);
     this.el.classList.add('open');
     this.el.setAttribute('aria-hidden', 'false');
@@ -53,7 +48,7 @@ export class ModelPickerView {
     this.el.setAttribute('aria-hidden', 'true');
   }
 
-  private populate(s: ModelPickerSettings): void {
+  private populate(s: SettingsSnapshot): void {
     // Provider buttons
     this.el.querySelectorAll<HTMLButtonElement>('.mp-provider-btn').forEach((b) => {
       b.classList.toggle('selected', b.dataset.provider === s.provider);
@@ -221,7 +216,7 @@ export class ModelPickerView {
       const maxTurnsRaw = parseInt(this.el.querySelector<HTMLInputElement>('.mp-max-turns')!.value, 10);
       const maxTurns = isNaN(maxTurnsRaw) || maxTurnsRaw < 1 ? 8 : Math.min(maxTurnsRaw, 32);
 
-      const result: ModelPickerSettings = {
+      const result: SettingsSnapshot = {
         provider: this.selectedProvider(),
         providers: {
           anthropic: {
@@ -240,6 +235,7 @@ export class ModelPickerView {
         },
         defaultPermissionMode: this.selectedPermissionMode(),
         defaultMaxTurns: maxTurns,
+        disabledSingletons: this.lastDisabledSingletons,
       };
       this.cb.onSave(result);
     });

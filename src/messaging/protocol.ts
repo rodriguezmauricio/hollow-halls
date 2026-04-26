@@ -119,6 +119,7 @@ export type WebviewMsg =
       readonly visualPreset: number;
     }
   | { readonly type: 'delete_agent'; readonly roomId: string; readonly agentId: string }
+  | { readonly type: 'toggle_singleton'; readonly which: 'oracle' | 'common' }
   | {
       /** Update global provider/model settings. */
       readonly type: 'update_settings';
@@ -130,6 +131,8 @@ export type WebviewMsg =
       };
       readonly defaultPermissionMode: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
       readonly defaultMaxTurns: number;
+      /** Preserve disabled singletons across settings saves — picker doesn't change these. */
+      readonly disabledSingletons: readonly ('oracle' | 'common')[];
     }
   | {
       /** Persist this room's Turn[] so the extension can restore it on next open.
@@ -150,6 +153,7 @@ export interface SettingsSnapshot {
   };
   readonly defaultPermissionMode: 'plan' | 'acceptEdits' | 'bypassPermissions';
   readonly defaultMaxTurns: number;
+  readonly disabledSingletons: readonly ('oracle' | 'common')[];
 }
 
 export type ExtensionMsg =

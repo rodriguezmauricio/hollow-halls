@@ -38,6 +38,8 @@ export interface Settings {
   readonly defaultPermissionMode: PermissionMode;
   /** Global cap for tool-use turns (applied to claude-code agent calls). */
   readonly defaultMaxTurns: number;
+  /** Singletons the user has hidden from the floor plan. */
+  readonly disabledSingletons: readonly ('oracle' | 'common')[];
 }
 
 const DEFAULTS: Settings = {
@@ -66,6 +68,7 @@ const DEFAULTS: Settings = {
   defaultPermissionMode: 'plan',
   // Tool-use turn cap. 8 is a pragmatic ceiling against runaway cost on Max.
   defaultMaxTurns: 8,
+  disabledSingletons: [],
 };
 
 /**
@@ -159,6 +162,9 @@ function normalize(raw: unknown): Settings {
     defaultMaxTurns: typeof r.defaultMaxTurns === 'number' && r.defaultMaxTurns > 0
       ? Math.min(r.defaultMaxTurns, 32)
       : DEFAULTS.defaultMaxTurns,
+    disabledSingletons: Array.isArray(r.disabledSingletons)
+      ? (r.disabledSingletons as unknown[]).filter((v): v is 'oracle' | 'common' => v === 'oracle' || v === 'common')
+      : [],
   };
 }
 

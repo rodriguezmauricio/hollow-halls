@@ -2090,3 +2090,35 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   transition: background 0.15s;
 }
 .mp-save:hover { background: var(--stone-lo); }
+
+/* ---- Singleton deactivation ---- */
+.room.room-inactive {
+  opacity: 0.35;
+  pointer-events: none;
+}
+/* The toggle button is still interactive even when inactive */
+.singleton-toggle-btn {
+  position: absolute;
+  background: none;
+  border: 1px solid var(--stone-lo);
+  color: var(--bone-ghost);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 2px;
+  padding: 3px 8px;
+  cursor: pointer;
+  z-index: 20;
+  pointer-events: all;
+  transition: color 0.12s, border-color 0.12s, opacity 0.12s;
+  opacity: 0;
+}
+.frame:hover .singleton-toggle-btn { opacity: 1; }
+.singleton-toggle-btn.activate {
+  border-color: var(--prim-lo, #5ec8c0);
+  color: var(--prim-lo, #5ec8c0);
+}
+.singleton-toggle-btn.activate:hover { background: rgba(94,200,192,0.08); }
+.singleton-toggle-btn.deactivate:hover {
+  border-color: var(--stone);
+  color: var(--bone-dim);
+}

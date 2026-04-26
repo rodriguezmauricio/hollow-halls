@@ -4,9 +4,8 @@ import { GreatHallView } from './scene/room/GreatHallView';
 import { OracleView } from './scene/room/OracleView';
 import { RoomCreatorView } from './scene/RoomCreatorView';
 import { ModelPickerView } from './scene/ModelPickerView';
-import type { ModelPickerSettings } from './scene/ModelPickerView';
 import type { Turn } from './scene/room/Transcript';
-import type { AgentPublicInfo, ExtensionMsg, RoomPublicInfo, WebviewMsg } from '@/messaging/protocol';
+import type { AgentPublicInfo, ExtensionMsg, RoomPublicInfo, SettingsSnapshot, WebviewMsg } from '@/messaging/protocol';
 
 let sessionTotalUSD = 0;
 
@@ -167,7 +166,7 @@ const oracleView = new OracleView(document.body, {
 // ---- Model / settings picker ----
 
 /** Last known settings — populated on init so the picker can open pre-filled. */
-let cachedSettings: ModelPickerSettings | null = null;
+let cachedSettings: SettingsSnapshot | null = null;
 
 const modelPicker = new ModelPickerView(document.body, {
   onSave: (s) => {
@@ -179,6 +178,7 @@ const modelPicker = new ModelPickerView(document.body, {
       providers: s.providers,
       defaultPermissionMode: s.defaultPermissionMode,
       defaultMaxTurns: s.defaultMaxTurns,
+      disabledSingletons: s.disabledSingletons,
     });
   },
   onCancel: () => {
@@ -374,7 +374,8 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
       msg.rooms.forEach((r) => rooms.set(r.id, r));
       markLiveRooms(svg, rooms);
       showProviderBadge(buildingFrame, msg.provider, msg.model);
-      if (msg.settings) cachedSettings = msg.settings;
+      cachedSettings = msg.settings;
+      applySingletonState(msg.settings.disabledSingletons);
       // Render tiles for custom rooms (not in the static SVG).
       msg.rooms
         .filter((r) => !svg.querySelector(`[data-room="${CSS.escape(r.id)}"]`))
@@ -672,7 +673,8 @@ window.addEventListener('message', (e: MessageEvent<ExtensionMsg>) => {
 
     case 'settings_updated': {
       showProviderBadge(buildingFrame, msg.provider, msg.model);
-      if (msg.settings) cachedSettings = msg.settings;
+      cachedSettings = msg.settings;
+      applySingletonState(msg.settings.disabledSingletons);
       return;
     }
 
@@ -766,6 +768,50 @@ function showProviderBadge(
   frame.appendChild(badge);
 }
 
+/** Apply .room-inactive class to Oracle / Common when disabled, and add/remove
+ *  a toggle button foreignObject inside each singleton group. */
+function applySingletonState(disabled: readonly ('oracle' | 'common')[]): void {
+  (['oracle', 'common'] as const).forEach((which) => {
+    const g = svg.querySelector<SVGGElement>(`.room.${which}`);
+    if (!g) return;
+    const isDisabled = disabled.includes(which);
+    g.classList.toggle('room-inactive', isDisabled);
+
+    // Add a toggle button as an HTML overlay positioned over the SVG group.
+    const btnId = `singleton-toggle-${which}`;
+    let btn = buildingFrame.querySelector<HTMLButtonElement>(`#${btnId}`);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = btnId;
+      btn.className = 'singleton-toggle-btn';
+      btn.type = 'button';
+      btn.dataset.which = which;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        send({ type: 'toggle_singleton', which: btn!.dataset.which as 'oracle' | 'common' });
+      });
+      buildingFrame.appendChild(btn);
+    }
+    btn.textContent = isDisabled ? 'ACTIVATE' : 'DEACTIVATE';
+    btn.classList.toggle('deactivate', !isDisabled);
+    btn.classList.toggle('activate', isDisabled);
+
+    // Position the button over the SVG group using getBoundingClientRect.
+    const svgRect = svg.getBoundingClientRect();
+    const frameRect = buildingFrame.getBoundingClientRect();
+    const gBox = g.getBBox();
+    const svgEl = svg as SVGSVGElement;
+    const vb = svgEl.viewBox.baseVal;
+    const scaleX = svgRect.width / vb.width;
+    const scaleY = svgRect.height / vb.height;
+    const left = svgRect.left - frameRect.left + gBox.x * scaleX;
+    const top = svgRect.top - frameRect.top + (gBox.y + gBox.height) * scaleY - 20;
+    btn.style.left = `${left + (gBox.width * scaleX) / 2}px`;
+    btn.style.top = `${top}px`;
+    btn.style.transform = 'translateX(-50%)';
+  });
+}
+
 /** Briefly pulse the Oracle-target accent on a room's SVG group. */
 function flashRoom(svgEl: SVGSVGElement, roomId: string): void {
   const g = svgEl.querySelector<SVGGElement>(
@@ -775,5 +821,10 @@ function flashRoom(svgEl: SVGSVGElement, roomId: string): void {
   g.classList.add('room-oracle-flash');
   setTimeout(() => g.classList.remove('room-oracle-flash'), 900);
 }
+
+// Reposition singleton toggle buttons when the layout changes.
+window.addEventListener('resize', () => {
+  if (cachedSettings) applySingletonState(cachedSettings.disabledSingletons);
+});
 
 send({ type: 'ready' });
