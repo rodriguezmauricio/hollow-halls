@@ -54,7 +54,18 @@ export interface TurnChainError {
   readonly at: number;
 }
 
-export type Turn = TurnUser | TurnAgent | TurnToolUse | TurnHandoff | TurnChainError;
+export interface TurnInterrupted {
+  readonly kind: 'interrupted';
+  readonly at: number;
+}
+
+export type Turn =
+  | TurnUser
+  | TurnAgent
+  | TurnToolUse
+  | TurnHandoff
+  | TurnChainError
+  | TurnInterrupted;
 
 export interface RoomPalette {
   readonly accent: string;
@@ -180,6 +191,27 @@ export class Transcript {
     this.appendTurn(turn);
   }
 
+  /** User pressed STOP. Lock down any in-flight agent turn so trailing
+   *  chunks (the subprocess can take a moment to die) don't tack onto it
+   *  after the marker, then append a clear "interrupted by user" row. */
+  addInterrupted(): void {
+    for (let i = this.turns.length - 1; i >= 0; i--) {
+      const t = this.turns[i];
+      if (t && t.kind === 'agent' && !t.done) {
+        t.done = true;
+        const el = this.turnEls.get(t);
+        if (el) {
+          const body = el.querySelector<HTMLElement>('.turn-body');
+          const caret = body?.querySelector('.caret');
+          caret?.remove();
+        }
+        break;
+      }
+    }
+    const turn: TurnInterrupted = { kind: 'interrupted', at: Date.now() };
+    this.appendTurn(turn);
+  }
+
   /** Attach a BUILD button to the most recent completed agent turn. */
   showBuildButton(agentId: string, label: string, onClick: () => void): void {
     for (let i = this.turns.length - 1; i >= 0; i--) {
@@ -281,7 +313,15 @@ export class Transcript {
     if (turn.kind === 'tool') return this.renderStandaloneTool(turn);
     if (turn.kind === 'handoff') return this.renderHandoffTurn(turn);
     if (turn.kind === 'chain-error') return this.renderChainErrorTurn(turn);
+    if (turn.kind === 'interrupted') return this.renderInterruptedTurn(turn);
     return this.renderAgentTurn(turn);
+  }
+
+  private renderInterruptedTurn(_turn: TurnInterrupted): HTMLLIElement {
+    const li = document.createElement('li');
+    li.className = 'turn turn-interrupted';
+    li.textContent = 'stopped by you';
+    return li;
   }
 
   private renderHandoffTurn(turn: TurnHandoff): HTMLLIElement {

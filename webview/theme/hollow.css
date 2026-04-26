@@ -1411,3 +1411,27 @@ button.turn-plan-path:hover { opacity: 1; text-decoration: underline; }
   margin: 4px 0;
   background: rgba(214, 108, 108, 0.06);
 }
+
+/* User-interrupted marker — appears the moment STOP is clicked, gives
+ * the chain explicit closure even if the subprocess takes a beat to die. */
+.turn-interrupted {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--bone-ghost);
+  text-align: center;
+  padding: 6px 0 8px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.turn-interrupted::before,
+.turn-interrupted::after {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: rgba(214, 108, 108, 0.45);
+  vertical-align: middle;
+}
+.turn-interrupted::before { margin-right: 8px; }
+.turn-interrupted::after { margin-left: 8px; }

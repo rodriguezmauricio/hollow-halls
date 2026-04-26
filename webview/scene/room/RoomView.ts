@@ -117,6 +117,10 @@ export class RoomView {
     this.transcript.addToolUse(event);
   }
 
+  addInterrupted(): void {
+    this.transcript.addInterrupted();
+  }
+
   addHandoff(fromAgentId: string, toAgentId: string): void {
     this.transcript.addHandoff(fromAgentId, toAgentId);
   }

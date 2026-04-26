@@ -81,6 +81,19 @@ const roomView = new RoomView(document.body, {
   },
   onStop: (roomId) => {
     send({ type: 'cancel_room_stream', roomId });
+    // Lock down whatever turn is in-flight in the retained state so late
+    // chunks (the subprocess can take a beat to die) don't append after
+    // the marker, then drop the marker into both retained state + the
+    // visible transcript.
+    const st = stateFor(roomId);
+    for (let i = st.turns.length - 1; i >= 0; i--) {
+      const t = st.turns[i];
+      if (t && t.kind === 'agent' && !t.done) { t.done = true; break; }
+    }
+    st.turns.push({ kind: 'interrupted', at: Date.now() });
+    if (roomView.currentRoomId() === roomId) {
+      roomView.addInterrupted();
+    }
   },
 });
 
