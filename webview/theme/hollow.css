@@ -499,6 +499,9 @@ body {
 .tool-chip .chip-prefix { color: var(--turn-accent, var(--bone-ghost)); opacity: 0.75; }
 .tool-chip .chip-tname { color: var(--bone-dim); font-weight: 500; }
 .tool-chip .chip-summary { color: var(--bone-ghost); opacity: 0.75; }
+.tool-chip.tool-chip-error .chip-prefix,
+.tool-chip.tool-chip-error .chip-tname,
+.tool-chip.tool-chip-error .chip-summary { color: var(--sec); opacity: 1; }
 .turn-tool-standalone {
   max-width: 760px;
   padding: 2px 0;
