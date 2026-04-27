@@ -1068,6 +1068,62 @@ body {
 .gh-new-meeting:hover { filter: brightness(1.1); }
 .gh-new-meeting:active { transform: translateY(1px); }
 
+/* ---- Reply input shown after meeting_ended ---- */
+.gh-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.gh-reply-input {
+  width: 100%;
+  background: var(--ink-3);
+  border: 1px solid var(--stone);
+  color: var(--bone);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  resize: vertical;
+  min-height: 56px;
+}
+.gh-reply-input:focus { outline: none; border-color: var(--bone-dim); }
+.gh-reply-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.gh-reply-row .gh-new-meeting {
+  background: transparent;
+  color: var(--bone-dim);
+  border: 1px solid var(--stone);
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 7px 14px;
+}
+.gh-reply-row .gh-new-meeting:hover {
+  color: var(--bone);
+  border-color: var(--bone-dim);
+  filter: none;
+}
+.gh-reply-send {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--ink);
+  background: var(--bone);
+  border: none;
+  padding: 10px 22px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: filter 0.15s, opacity 0.15s, transform 0.1s;
+}
+.gh-reply-send:hover:not(:disabled) { filter: brightness(1.1); }
+.gh-reply-send:active:not(:disabled) { transform: translateY(1px); }
+.gh-reply-send:disabled { opacity: 0.35; cursor: default; }
+
 .gh-summary {
   display: flex; align-items: baseline; gap: 28px;
   font-family: 'IBM Plex Mono', monospace;

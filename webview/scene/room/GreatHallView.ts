@@ -24,6 +24,8 @@ export interface GreatHallCallbacks {
   readonly onConvene: (picks: { roomId: string; agentId: string }[], task: string) => void;
   readonly onCancelMeeting: (meetingId: string) => void;
   readonly onBuild: (agentId: string, prompt: string) => void;
+  /** Continue an ended meeting with a follow-up question. */
+  readonly onContinueMeeting: (meetingId: string, followUp: string) => void;
 }
 
 type Phase = 'picker' | 'meeting' | 'ended';
@@ -242,10 +244,64 @@ export class GreatHallView {
     }
     const controls = this.el.querySelector<HTMLElement>('.gh-controls');
     if (controls) {
-      controls.innerHTML = `<button class="gh-new-meeting" type="button">NEW MEETING</button>`;
+      controls.innerHTML = `
+        <div class="gh-reply">
+          <textarea class="gh-reply-input" rows="2"
+            placeholder="Reply to the council, ask a clarifying question, or push back…"></textarea>
+          <div class="gh-reply-row">
+            <button class="gh-new-meeting" type="button">NEW MEETING</button>
+            <button class="gh-reply-send" type="button" disabled>REPLY</button>
+          </div>
+        </div>
+      `;
+      const input = controls.querySelector<HTMLTextAreaElement>('.gh-reply-input')!;
+      const sendBtn = controls.querySelector<HTMLButtonElement>('.gh-reply-send')!;
+      input.addEventListener('input', () => {
+        sendBtn.disabled = input.value.trim().length === 0;
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          sendBtn.click();
+        }
+      });
+      sendBtn.addEventListener('click', () => this.submitReply(input));
       (controls.querySelector('.gh-new-meeting') as HTMLButtonElement)
         .addEventListener('click', () => this.startNewMeeting());
+      requestAnimationFrame(() => input.focus());
     }
+  }
+
+  /** User submitted a follow-up reply after a meeting ended. Inject it into
+   *  the transcript as a "you" turn, transition back to meeting phase, and
+   *  ask the extension to continue the convening. */
+  private submitReply(input: HTMLTextAreaElement): void {
+    const text = input.value.trim();
+    if (!text || !this.meetingId) return;
+    const meetingId = this.meetingId;
+    // Show the user's reply in the transcript before agents respond.
+    this.transcript?.addUserPrompt(text);
+    // Reset the summary banner + controls back to meeting state.
+    this.phase = 'meeting';
+    const mod = this.el.querySelector<HTMLElement>('.gh-moderator');
+    if (mod) {
+      mod.textContent = 'reply sent — the council is hearing you';
+      mod.classList.remove('gh-moderator-ended');
+      delete mod.dataset.reason;
+    }
+    const footer = this.el.querySelector<HTMLElement>('.gh-summary-footer');
+    if (footer) {
+      footer.classList.remove('shown');
+      footer.innerHTML = '';
+    }
+    const controls = this.el.querySelector<HTMLElement>('.gh-controls');
+    if (controls) {
+      controls.innerHTML = `<button class="gh-cancel" type="button">CANCEL MEETING</button>`;
+      (controls.querySelector('.gh-cancel') as HTMLButtonElement)
+        .addEventListener('click', () => this.cb.onCancelMeeting(meetingId));
+    }
+    this.showBubbleAtCenter();
+    this.cb.onContinueMeeting(meetingId, text);
   }
 
   // ---- private: renders ----

@@ -31,6 +31,19 @@ const costTracker = new CostTracker();
 
 /** Per-meeting abort controllers so the webview can cancel a convening in flight. */
 const meetingAborts = new Map<string, AbortController>();
+
+/** Per-meeting session state so a continue_meeting can resume with the prior
+ *  transcript injected. Cleared when the meeting is cancelled or the panel
+ *  closes; otherwise lives until the next convene with a fresh meetingId. */
+interface MeetingSession {
+  attending: Attending[];
+  task: string;
+  transcript: import('@/core/Moderator').TranscriptEntry[];
+  savedMessages: import('@/core/Persistence').TranscriptMessage[];
+  permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+  thinking?: 'off' | 'low' | 'medium' | 'high';
+}
+const meetingSessions = new Map<string, MeetingSession>();
 /** Per-room abort controllers so the webview can stop an individual agent stream. */
 const roomAborts = new Map<string, AbortController>();
 
@@ -464,6 +477,37 @@ function wireMessages(
         case 'cancel_meeting': {
           const ctrl = meetingAborts.get(raw.meetingId);
           if (ctrl) ctrl.abort();
+          // Cancellation drops the session — a continue would just restart from
+          // the same partial state, which is rarely what the user wants.
+          meetingSessions.delete(raw.meetingId);
+          return;
+        }
+
+        case 'continue_meeting': {
+          const session = meetingSessions.get(raw.meetingId);
+          if (!session) {
+            send(p, { type: 'error', message: 'That meeting can no longer be continued — start a new one.' });
+            return;
+          }
+          // Inject the user's follow-up as a transcript entry the moderator and
+          // speakers will see. agentId "__user__" surfaces as "[you]" in the
+          // composed prompt, which the moderator naturally interprets as a
+          // visitor utterance to respond to.
+          const continuedTranscript = [
+            ...session.transcript,
+            { agentId: '__user__', agentName: 'You', text: raw.followUp },
+          ];
+          await runMeetingRound(p, context, skills, {
+            meetingId: raw.meetingId,
+            attending: session.attending,
+            attendingPublic: undefined, // not re-emitted on continuation
+            task: session.task,
+            permissionMode: raw.permissionMode ?? session.permissionMode,
+            thinking: raw.thinking ?? session.thinking,
+            priorTranscript: continuedTranscript,
+            priorSavedMessages: session.savedMessages,
+            isContinuation: true,
+          });
           return;
         }
 
@@ -774,18 +818,63 @@ async function handleConvene(
     return;
   }
 
-  const settings = await loadSettings();
   const meetingId = `m_${Date.now().toString(36)}`;
+  await runMeetingRound(p, context, skills, {
+    meetingId,
+    attending,
+    attendingPublic,
+    task: msg.task,
+    permissionMode: msg.permissionMode,
+    thinking: msg.thinking,
+    isContinuation: false,
+  });
+}
+
+interface MeetingRoundOpts {
+  readonly meetingId: string;
+  readonly attending: Attending[];
+  /** Public roster sent to webview on meeting_started. Omitted on continuation. */
+  readonly attendingPublic?: AttendingAgent[];
+  readonly task: string;
+  readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
+  readonly thinking?: 'off' | 'low' | 'medium' | 'high';
+  readonly priorTranscript?: import('@/core/Moderator').TranscriptEntry[];
+  readonly priorSavedMessages?: import('@/core/Persistence').TranscriptMessage[];
+  readonly isContinuation: boolean;
+}
+
+/** Single round of meeting execution. Used by both convene (fresh meeting)
+ *  and continue_meeting (follow-up). Stores the final session so the next
+ *  continuation can resume. */
+async function runMeetingRound(
+  p: vscode.WebviewPanel,
+  context: vscode.ExtensionContext,
+  skills: SkillsManager,
+  opts: MeetingRoundOpts,
+): Promise<void> {
+  const settings = await loadSettings();
+  const { meetingId, attending, task } = opts;
   const controller = new AbortController();
   meetingAborts.set(meetingId, controller);
 
-  send(p, { type: 'meeting_started', meetingId, attending: attendingPublic, task: msg.task });
+  if (!opts.isContinuation && opts.attendingPublic) {
+    send(p, { type: 'meeting_started', meetingId, attending: opts.attendingPublic, task });
+  }
   send(p, { type: 'room_activity', roomId: 'common', busy: true });
 
   const common = new CommonRoom(context, settings, skills);
   try {
     await common.convene(
-      { meetingId, task: msg.task, attending, permissionMode: msg.permissionMode, thinking: msg.thinking, cwd: workspaceCwd() },
+      {
+        meetingId,
+        task,
+        attending,
+        permissionMode: opts.permissionMode,
+        thinking: opts.thinking,
+        cwd: workspaceCwd(),
+        priorTranscript: opts.priorTranscript,
+        priorSavedMessages: opts.priorSavedMessages,
+      },
       {
         onModeratorPick: (agentId, rationale) =>
           send(p, { type: 'moderator_pick', meetingId, agentId, rationale }),
@@ -822,7 +911,20 @@ async function handleConvene(
         },
         onAgentAborted: (agentId) =>
           send(p, { type: 'agent_message_complete', roomId: 'common', meetingId, agentId }),
-        onMeetingEnded: ({ reason, turns, costUSD, transcriptPath }) => {
+        onMeetingEnded: ({ reason, turns, costUSD, transcriptPath, transcript, savedMessages }) => {
+          // Stash the final state so a follow-up can pick up where this left off.
+          if (reason !== 'cancelled') {
+            meetingSessions.set(meetingId, {
+              attending: attending.slice(),
+              task,
+              transcript: transcript.slice(),
+              savedMessages: savedMessages.slice(),
+              permissionMode: opts.permissionMode,
+              thinking: opts.thinking,
+            });
+          } else {
+            meetingSessions.delete(meetingId);
+          }
           send(p, { type: 'meeting_ended', meetingId, reason, turns, costUSD, transcriptPath });
           send(p, { type: 'room_activity', roomId: 'common', busy: false });
         },

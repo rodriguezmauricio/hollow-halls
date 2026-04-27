@@ -40,6 +40,12 @@ export interface ConveneRequest {
   readonly permissionMode?: 'plan' | 'acceptEdits' | 'bypassPermissions' | 'default' | 'dontAsk';
   readonly thinking?: 'off' | 'low' | 'medium' | 'high';
   readonly cwd?: string;
+  /** Pre-existing turns from a prior round of this meeting, replayed into
+   *  the moderator/speaker context so a continuation feels seamless. */
+  readonly priorTranscript?: readonly TranscriptEntry[];
+  /** Pre-existing saved messages — appended-to so the on-disk transcript
+   *  reflects the full multi-round conversation. */
+  readonly priorSavedMessages?: readonly TranscriptMessage[];
 }
 
 export interface ConveneEvents {
@@ -56,6 +62,10 @@ export interface ConveneEvents {
     turns: number;
     costUSD: number;
     transcriptPath?: string;
+    /** Final transcript so the host can stash it for a continuation. */
+    transcript: readonly TranscriptEntry[];
+    /** Final saved-messages so persistence + continuation can append. */
+    savedMessages: readonly TranscriptMessage[];
   }) => void;
   readonly onError: (err: Error) => void;
 }
@@ -70,8 +80,8 @@ export class CommonRoom {
   async convene(req: ConveneRequest, events: ConveneEvents, signal: AbortSignal): Promise<void> {
     const maxTurns = req.maxTurns ?? 6;
     const startedAt = new Date().toISOString();
-    const transcript: TranscriptEntry[] = [];
-    const savedMessages: TranscriptMessage[] = [];
+    const transcript: TranscriptEntry[] = [...(req.priorTranscript ?? [])];
+    const savedMessages: TranscriptMessage[] = [...(req.priorSavedMessages ?? [])];
     let totalCost = 0;
     let reason: 'done' | 'turn_limit' | 'cancelled' | 'error' = 'done';
 
@@ -80,7 +90,7 @@ export class CommonRoom {
       moderator = await providerForModerator(this.ctx, this.settings);
     } catch (err) {
       events.onError(err instanceof Error ? err : new Error(String(err)));
-      events.onMeetingEnded({ reason: 'error', turns: 0, costUSD: 0 });
+      events.onMeetingEnded({ reason: 'error', turns: 0, costUSD: 0, transcript: [], savedMessages: [] });
       return;
     }
 
@@ -233,7 +243,14 @@ export class CommonRoom {
       }
     }
 
-    events.onMeetingEnded({ reason, turns: savedMessages.length, costUSD: totalCost, transcriptPath });
+    events.onMeetingEnded({
+      reason,
+      turns: savedMessages.length,
+      costUSD: totalCost,
+      transcriptPath,
+      transcript,
+      savedMessages,
+    });
   }
 }
 

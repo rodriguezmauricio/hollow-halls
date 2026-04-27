@@ -139,6 +139,11 @@ const greatHall = new GreatHallView(document.body, {
     greatHall.setMode('acceptEdits');
     send({ type: 'build_last_turn', roomId: 'common', agentId, prompt });
   },
+  onContinueMeeting: (meetingId, followUp) => {
+    const mode = greatHall.selectedMode();
+    const thinking = greatHall.selectedThinking();
+    send({ type: 'continue_meeting', meetingId, followUp, permissionMode: mode, thinking });
+  },
 });
 
 /** Last prompt typed in the Oracle — used to pre-fill the destination. */
